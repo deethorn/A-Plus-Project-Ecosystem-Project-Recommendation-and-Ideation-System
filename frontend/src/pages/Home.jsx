@@ -82,12 +82,12 @@ export default function Home() {
       {/* Hero Section */}
       <section className="max-w-4xl mx-auto text-center px-6 py-24">
         <h1 className="text-4xl md:text-5xl font-bold text-gray-900 leading-tight mb-6">
-          Turn Your Project Ideas Into
-          <span className="text-blue-600"> Reality</span>
+          What's The Big
+          <span className="text-blue-600"> Idea?</span>
         </h1>
         <p className="text-lg text-gray-500 mb-10 max-w-2xl mx-auto">
           APPE helps university students ideate, post, and collaborate on
-          academic projects — while detecting duplicate ideas before they're submitted.
+          academic projects.
         </p>
         <div className="flex items-center justify-center gap-4">
           {user ? (
@@ -97,7 +97,7 @@ export default function Home() {
           ) : (
             <>
               <Link to="/register" className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold text-sm">
-                Get Started — It's Free
+                Get Started
               </Link>
               <Link to="/login" className="text-sm text-gray-600 hover:text-blue-600 font-medium border border-gray-200 px-6 py-3 rounded-lg">
                 Login to Dashboard
@@ -136,7 +136,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="text-center py-8 text-sm text-gray-400 border-t border-gray-100">
-        © 2026 APPE — Academic Project Ideation Platform
+        © 2026 APPE — A Plus Project Ecosystem
       </footer>
 
     </div>
