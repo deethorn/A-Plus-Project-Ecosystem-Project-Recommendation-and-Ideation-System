@@ -112,7 +112,7 @@ export default function Home() {
         <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="bg-white rounded-xl border border-gray-200 p-6">
             <div className="text-3xl mb-4">💡</div>
-            <h3 className="font-semibold text-gray-800 mb-2">Post Project Ideas</h3>
+            <h3 className="font-semibold text-gray-800 mb-2">Post Project</h3>
             <p className="text-sm text-gray-500">
               Share your academic project ideas with the university community and attract the right collaborators.
             </p>
