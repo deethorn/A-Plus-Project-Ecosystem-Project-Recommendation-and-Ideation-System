@@ -21,8 +21,6 @@ function calculateMatchScore(user, project) {
     ...(project.tags || []).map(t => t.toLowerCase()),
     project.category.toLowerCase()
   ]
-
-  // Skills score — how many of the project's required skills the user has
   let skillScore = 0
   if (projectSkills.length > 0 && userSkills.length > 0) {
     const matchingSkills = projectSkills.filter(ps =>
@@ -30,8 +28,6 @@ function calculateMatchScore(user, project) {
     )
     skillScore = (matchingSkills.length / projectSkills.length) * 100
   }
-
-  // Interest score — how many of the user's interests match the project topics
   let interestScore = 0
   if (userInterests.length > 0 && projectTopics.length > 0) {
     const matchingInterests = userInterests.filter(ui =>
@@ -39,14 +35,10 @@ function calculateMatchScore(user, project) {
     )
     interestScore = (matchingInterests.length / userInterests.length) * 100
   }
-
-  // If user has no profile data at all
   if (userSkills.length === 0 && userInterests.length === 0) return 0
-
   // Weighted: 60% skills match, 40% interest match
   if (projectSkills.length === 0) return Math.round(interestScore)
   if (userInterests.length === 0) return Math.round(skillScore)
-
   return Math.round(skillScore * 0.6 + interestScore * 0.4)
 }
 
