@@ -1,156 +1,163 @@
-/**
- * Login Page
- * File: src/pages/Login.jsx
- * 
- * PURPOSE: Let users sign in with email + password
- * CONNECTS TO: authService.login() → backend /api/auth/login
- */
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth';
+import { useState } from 'react'
+import { useNavigate, Link } from 'react-router-dom'
+import { useAuth } from '../hooks/useAuth'
+import { useTheme } from '../context/ThemeContext'
+import appe from '../assets/appe.svg'
+import logo from '../assets/logo.svg'
+
+const IconAlertCircle = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10"/>
+    <line x1="12" y1="8" x2="12" y2="12"/>
+    <line x1="12" y1="16" x2="12.01" y2="16"/>
+  </svg>
+)
+const IconMail = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+    <polyline points="22,6 12,13 2,6"/>
+  </svg>
+)
+const IconLock = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+  </svg>
+)
+const IconArrowLeft = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="19" y1="12" x2="5" y2="12"/>
+    <polyline points="12 19 5 12 12 5"/>
+  </svg>
+)
 
 function Login() {
-  // NAVIGATION: useNavigate() lets us redirect after successful login
-  const navigate = useNavigate();
-  
-  // AUTH: useAuth() gives us the login function from AuthContext
-  const { login } = useAuth();
-  
-  // FORM STATE: Track what user types in email and password fields
-  const [formData, setFormData] = useState({
-    email: '',
-    password: ''
-  });
-  
-  // ERROR STATE: Store error messages to show user
-  const [error, setError] = useState('');
-  
-  // LOADING STATE: Show spinner/disable button while logging in
-  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate()
+  const { login } = useAuth()
+  const { isDark } = useTheme()
 
-  // HANDLE INPUT CHANGES
-  // When user types in any input field, update formData
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,                    // Keep other fields as they are
-      [e.target.name]: e.target.value // Update only the changed field
-    });
-  };
+  const [formData, setFormData] = useState({ email: '', password: '' })
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
-  // HANDLE FORM SUBMISSION
+  const t = {
+    page:       isDark ? 'bg-black'                                                 : 'bg-gray-50',
+    overlay:    isDark ? 'bg-black/80'                                              : 'bg-gray-50/85',
+    card:       isDark ? 'bg-zinc-900 border border-white/10'                       : 'bg-white border border-gray-200',
+    heading:    isDark ? 'text-white'                                               : 'text-gray-900',
+    subtext:    isDark ? 'text-white/40'                                            : 'text-gray-500',
+    label:      isDark ? 'text-white/70'                                            : 'text-gray-700',
+    inputWrap:  isDark ? 'bg-zinc-800 border-white/15 focus-within:border-white/40' : 'bg-white border-gray-300 focus-within:border-gray-500',
+    inputText:  isDark ? 'text-white placeholder-white/25 bg-transparent'          : 'text-gray-800 placeholder-gray-400 bg-transparent',
+    iconColor:  isDark ? 'text-white/25'                                            : 'text-gray-400',
+    submitBtn:  isDark ? 'bg-white hover:bg-gray-100 text-black disabled:opacity-50' : 'bg-black hover:bg-zinc-800 text-white disabled:opacity-50',
+    linkAccent: isDark ? 'text-white hover:text-white/70 font-semibold'             : 'text-gray-900 hover:text-gray-600 font-semibold',
+    errorBg:    isDark ? 'bg-red-500/10 border-red-500/30 text-red-400'             : 'bg-red-50 border-red-200 text-red-600',
+    divider:    isDark ? 'border-white/8'                                           : 'border-gray-100',
+    backBtn:    isDark ? 'text-white/40 hover:text-white/80 hover:bg-white/8'       : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/60',
+  }
+
+  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value })
+
   const handleSubmit = async (e) => {
-    e.preventDefault(); // Prevent page reload (default form behavior)
-    
-    // Clear any previous errors
-    setError('');
-    
-    // Start loading state
-    setLoading(true);
-    
+    e.preventDefault(); setError(''); setLoading(true)
     try {
-      // Call login from AuthContext
-      // This sends email + password to backend
-      await login(formData);
-      
-      // If we reach here, login succeeded
-      // Redirect to dashboard
-      navigate('/dashboard');
-      
+      await login(formData)
+      navigate('/dashboard')
     } catch (err) {
-      // If login fails, show error message
-      // err.response.data.message comes from backend error response
-      setError(err.response?.data?.message || 'Login failed. Please try again.');
-      console.error('Login error:', err);
-      
-    } finally {
-      // Always stop loading, whether success or failure
-      setLoading(false);
-    }
-  };
+      setError(err.response?.data?.message || 'Login failed. Please try again.')
+    } finally { setLoading(false) }
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">
-      <div className="max-w-md w-full space-y-8">
-        
-        {/* HEADER */}
-        <div>
-          <h2 className="text-center text-3xl font-bold text-gray-900">
-            Sign in to APPE
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            A Plus Project Eco
-          </p>
+    <div className={`min-h-screen flex items-center justify-center px-4 py-12 transition-colors duration-300 relative overflow-hidden ${t.page}`}>
+
+      {/* ── Background watermark ── */}
+      <img
+        src={appe}
+        alt=""
+        aria-hidden="true"
+        className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none"
+        style={{ opacity: isDark ? 0.20 : 0.28 }}
+      />
+
+      {/* ── Overlay ── */}
+      <div className={`absolute inset-0 ${t.overlay}`} />
+
+      {/* ── Back to Home button ── */}
+      <Link
+        to="/"
+        className={`absolute top-5 left-5 z-20 flex items-center gap-2 text-sm px-3 py-2 rounded-xl transition ${t.backBtn}`}
+      >
+        <IconArrowLeft />
+        <span>Back To Home</span>
+      </Link>
+
+      {/* ── Foreground content ── */}
+      <div className="relative z-10 w-full max-w-md">
+
+        {/* Brand */}
+        <div className="text-center mb-8">
+          <img src={appe} alt="APPE Logo" className="w-16 h-16 mx-auto mb-4 object-contain" />
+          <h1 className={`text-2xl font-bold ${t.heading}`}>Sign in to APPE</h1>
+          <p className={`text-sm mt-1 ${t.subtext}`}>A Plus Project Ecosystem</p>
         </div>
 
-        {/* LOGIN FORM */}
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          
-          {/* ERROR MESSAGE */}
+        {/* Card */}
+        <div className={`rounded-2xl p-8 ${t.card}`}>
+
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-              {error}
+            <div className={`text-sm px-4 py-3 rounded-xl border mb-5 flex items-center gap-2 ${t.errorBg}`}>
+              <IconAlertCircle /> {error}
             </div>
           )}
 
-          <div className="space-y-4">
-            
-            {/* EMAIL INPUT */}
+          <form onSubmit={handleSubmit} className="space-y-4">
+
+            {/* Email */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email Address
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                required
-                value={formData.email}
-                onChange={handleChange}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                placeholder="student@university.edu"
-              />
+              <label className={`block text-sm font-medium mb-1.5 ${t.label}`}>Email Address</label>
+              <div className={`flex items-center gap-3 border rounded-xl px-4 py-2.5 transition ${t.inputWrap}`}>
+                <span className={t.iconColor}><IconMail /></span>
+                <input type="email" name="email" value={formData.email} onChange={handleChange}
+                  required placeholder="student@university.edu"
+                  className={`flex-1 text-sm outline-none ${t.inputText}`} />
+              </div>
             </div>
 
-            {/* PASSWORD INPUT */}
+            {/* Password */}
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                value={formData.password}
-                onChange={handleChange}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                placeholder="••••••••"
-              />
+              <label className={`block text-sm font-medium mb-1.5 ${t.label}`}>Password</label>
+              <div className={`flex items-center gap-3 border rounded-xl px-4 py-2.5 transition ${t.inputWrap}`}>
+                <span className={t.iconColor}><IconLock /></span>
+                <input type="password" name="password" value={formData.password} onChange={handleChange}
+                  required placeholder="••••••••"
+                  className={`flex-1 text-sm outline-none ${t.inputText}`} />
+              </div>
             </div>
-          </div>
 
-          {/* SUBMIT BUTTON */}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? 'Signing in...' : 'Sign In'}
-          </button>
+            <div className="pt-1">
+              <button type="submit" disabled={loading}
+                className={`w-full py-2.5 rounded-xl text-sm font-medium transition ${t.submitBtn}`}>
+                {loading ? 'Signing in...' : 'Sign In'}
+              </button>
+            </div>
 
-          {/* REGISTER LINK */}
-          <div className="text-center">
-            <p className="text-sm text-gray-600">
+          </form>
+
+          <div className={`mt-6 pt-5 text-center border-t ${t.divider}`}>
+            <p className={`text-sm ${t.subtext}`}>
               Don't have an account?{' '}
-              <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500">
+              <Link to="/register" className={`transition ${t.linkAccent}`}>
                 Register here
               </Link>
             </p>
           </div>
-        </form>
+        </div>
+
       </div>
     </div>
-  );
+  )
 }
 
-export default Login;
+export default Login

@@ -1,30 +1,87 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { createProject } from '../services/projectService'
+import { useTheme } from '../context/ThemeContext'
 
 const CATEGORIES = [
   'Web Development', 'Mobile App', 'Machine Learning', 'Data Science',
   'IoT', 'Game Development', 'Blockchain', 'Cybersecurity', 'Cloud Computing', 'Other',
 ]
 
+const IconArrowLeft = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+  </svg>
+)
+const IconCheck = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+  </svg>
+)
+const IconAlertCircle = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10"/>
+    <line x1="12" y1="8" x2="12" y2="12"/>
+    <line x1="12" y1="16" x2="12.01" y2="16"/>
+  </svg>
+)
+const IconAlertTriangle = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+    <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+  </svg>
+)
+const IconEye = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+  </svg>
+)
+const IconGrid = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+    <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+  </svg>
+)
+const IconHome = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+    <polyline points="9 22 9 12 15 12 15 22"/>
+  </svg>
+)
+
 export default function PostProject() {
   const navigate = useNavigate()
+  const { isDark } = useTheme()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-
-  // NEW: capture result after submission
   const [submitted, setSubmitted] = useState(false)
   const [projectResult, setProjectResult] = useState(null)
-
   const [form, setForm] = useState({
-    title: '',
-    description: '',
-    category: '',
-    teamSize: '',
-    skillsNeeded: '',
-    tags: '',
-    isAnonymous: false,
+    title: '', description: '', category: '', teamSize: '',
+    skillsNeeded: '', tags: '', isAnonymous: false,
   })
+
+  const t = {
+    page:          isDark ? 'bg-black'                                               : 'bg-gray-50',
+    backBtn:       isDark ? 'text-white/40 hover:text-white'                         : 'text-gray-500 hover:text-gray-900',
+    heading:       isDark ? 'text-white'                                             : 'text-gray-900',
+    subtext:       isDark ? 'text-white/40'                                          : 'text-gray-500',
+    card:          isDark ? 'bg-zinc-900 border-white/10'                            : 'bg-white border-gray-200',
+    sectionHdr:    isDark ? 'bg-white border border-gray-100'                        : 'bg-black border border-black',
+    sectionTitle:  isDark ? 'text-gray-900'                                          : 'text-white',
+    label:         isDark ? 'text-white/70'                                          : 'text-gray-700',
+    labelSub:      isDark ? 'text-white/30'                                          : 'text-gray-400',
+    input:         isDark ? 'bg-zinc-800 border-white/15 text-white placeholder-white/25 focus:border-white/40' : 'bg-white border-gray-300 text-gray-800 placeholder-gray-400 focus:border-gray-500',
+    select:        isDark ? 'bg-zinc-800 border-white/15 text-white focus:border-white/40' : 'bg-white border-gray-300 text-gray-800 focus:border-gray-500',
+    checkLabel:    isDark ? 'text-white/60'                                          : 'text-gray-700',
+    submitBtn:     isDark ? 'bg-white hover:bg-gray-100 text-black disabled:opacity-50' : 'bg-black hover:bg-zinc-800 text-white disabled:opacity-50',
+    cancelBtn:     isDark ? 'border-white/15 text-white/50 hover:bg-white/5'         : 'border-gray-300 text-gray-600 hover:bg-gray-50',
+    errorBg:       isDark ? 'bg-red-500/10 border-red-500/30 text-red-400'           : 'bg-red-50 border-red-200 text-red-600',
+    divider:       isDark ? 'border-white/8'                                         : 'border-gray-100',
+    similarRow:    isDark ? 'bg-white/5 border-white/8 text-white/60'                : 'bg-gray-50 border-gray-100 text-gray-700',
+    actionBtn:     isDark ? 'border-white/15 text-white/50 hover:bg-white/8'         : 'border-gray-200 text-gray-600 hover:bg-gray-50',
+    metaText:      isDark ? 'text-white/35'                                          : 'text-gray-400',
+  }
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
@@ -32,219 +89,237 @@ export default function PostProject() {
   }
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    setError('')
-    setLoading(true)
-
+    e.preventDefault(); setError(''); setLoading(true)
     try {
       const data = await createProject({
         title: form.title,
         description: form.description,
         category: form.category,
         teamSize: Number(form.teamSize),
-        skillsNeeded: form.skillsNeeded.split(',').map((s) => s.trim()).filter(Boolean),
-        tags: form.tags.split(',').map((t) => t.trim().toLowerCase()).filter(Boolean),
+        skillsNeeded: form.skillsNeeded.split(',').map(s => s.trim()).filter(Boolean),
+        tags: form.tags.split(',').map(tag => tag.trim().toLowerCase()).filter(Boolean),
         isAnonymous: form.isAnonymous,
       })
-
-      // ✅ Capture the result and show score instead of immediately navigating
-      setProjectResult(data.project)
-      setSubmitted(true)
+      setProjectResult(data.project); setSubmitted(true)
     } catch (err) {
-      setError(
-        err.response?.data?.message ||
-        err.response?.data?.errors?.[0]?.message ||
-        'Failed to post project. Please try again.'
-      )
-    } finally {
-      setLoading(false)
-    }
+      setError(err.response?.data?.message || err.response?.data?.errors?.[0]?.message || 'Failed to post project.')
+    } finally { setLoading(false) }
   }
 
-  // ✅ Score result screen shown after submission
+  // ── Score Result Screen ──
   if (submitted && projectResult) {
     const score = projectResult.duplicateScore ?? 0
-
-    const scoreColor =
-      score >= 70 ? 'red' :
-      score >= 40 ? 'orange' :
-      'green'
+    const level = score >= 70 ? 'high' : score >= 40 ? 'medium' : 'low'
 
     const scoreConfig = {
-      red:    { bg: 'bg-red-50',    border: 'border-red-200',    text: 'text-red-700',    label: 'High Similarity', icon: '🚨' },
-      orange: { bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-700', label: 'Moderate Similarity', icon: '⚠️' },
-      green:  { bg: 'bg-green-50',  border: 'border-green-200',  text: 'text-green-700',  label: 'Original Idea', icon: '✅' },
-    }[scoreColor]
+      high:   {
+        icon: <IconAlertCircle />,
+        iconCls: 'text-red-400',
+        border: isDark ? 'border-red-500/30 bg-red-500/8' : 'border-red-200 bg-red-50',
+        valueCls: isDark ? 'text-red-400' : 'text-red-600',
+        label: 'High Similarity',
+        msg: 'Your project is highly similar to existing ones. Consider revising your title and description to make it more unique.',
+      },
+      medium: {
+        icon: <IconAlertTriangle />,
+        iconCls: 'text-orange-400',
+        border: isDark ? 'border-orange-500/30 bg-orange-500/8' : 'border-orange-200 bg-orange-50',
+        valueCls: isDark ? 'text-orange-400' : 'text-orange-600',
+        label: 'Moderate Similarity',
+        msg: 'Your project shares some similarities with existing projects. Review related ones before proceeding.',
+      },
+      low:    {
+        icon: <IconCheck />,
+        iconCls: 'text-green-400',
+        border: isDark ? 'border-green-500/30 bg-green-500/8' : 'border-green-200 bg-green-50',
+        valueCls: isDark ? 'text-green-400' : 'text-green-600',
+        label: 'Original Idea',
+        msg: 'Great! Your project idea appears to be unique in the system.',
+      },
+    }[level]
 
     return (
-      <div className="max-w-2xl mx-auto">
-        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+      <div className={`min-h-screen w-full transition-colors duration-300 ${t.page}`}>
+        <div className="max-w-2xl mx-auto px-6 pt-8 pb-16">
+          <div className={`rounded-2xl border p-8 ${t.card}`}>
 
-          {/* Success */}
-          <div className="text-4xl mb-3">🎉</div>
-          <h2 className="text-xl font-bold text-gray-800 mb-1">Project Posted!</h2>
-          <p className="text-sm text-gray-500 mb-8">
-            "{projectResult.title}" has been submitted successfully.
-          </p>
-
-          {/* Duplicate Score Card */}
-          <div className={`${scoreConfig.bg} ${scoreConfig.border} border rounded-xl p-6 mb-8`}>
-            <div className="flex items-center justify-center gap-2 mb-3">
-              <span className="text-2xl">{scoreConfig.icon}</span>
-              <span className={`text-sm font-semibold ${scoreConfig.text}`}>
-                Duplicate Detection Result
-              </span>
-            </div>
-
-            {/* Score Circle */}
-            <div className={`text-5xl font-bold ${scoreConfig.text} mb-2`}>
-              {score}%
-            </div>
-            <p className={`text-sm font-medium ${scoreConfig.text} mb-2`}>
-              {scoreConfig.label}
-            </p>
-            <p className="text-xs text-gray-500">
-              {score >= 70
-                ? 'Your project is highly similar to existing ones. Consider revising your title and description to make it more unique.'
-                : score >= 40
-                ? 'Your project shares some similarities with existing projects. Review related projects before proceeding.'
-                : 'Great! Your project idea appears to be unique in the system.'}
-            </p>
-          </div>
-
-          {/* Similar Projects if any */}
-          {projectResult.similarProjects?.length > 0 && (
-            <div className="text-left mb-8">
-              <h3 className="text-sm font-semibold text-gray-700 mb-3">Similar Existing Projects</h3>
-              <div className="space-y-2">
-                {projectResult.similarProjects.slice(0, 3).map((item, i) => (
-                  <div key={i} className="flex items-center justify-between bg-gray-50 rounded-lg px-4 py-3 border border-gray-100">
-                    <span className="text-sm text-gray-700 truncate pr-4">
-                      {item.project?.title || item.title}
-                    </span>
-                    <span className={`text-xs font-bold px-2 py-1 rounded-full shrink-0 ${
-                      item.similarityScore >= 70 ? 'bg-red-100 text-red-600' :
-                      item.similarityScore >= 40 ? 'bg-orange-100 text-orange-600' :
-                      'bg-gray-100 text-gray-500'
-                    }`}>
-                      {item.similarityScore}%
-                    </span>
-                  </div>
-                ))}
+            {/* Success header */}
+            <div className={`rounded-xl px-5 py-4 mb-8 flex items-center gap-3 ${t.sectionHdr}`}>
+              <div className={t.sectionTitle === 'text-gray-900' ? 'text-gray-700' : 'text-white/70'}>
+                <IconCheck />
+              </div>
+              <div>
+                <p className={`font-semibold ${t.sectionTitle}`}>Project Posted Successfully</p>
+                <p className={`text-xs mt-0.5 ${t.sectionTitle} opacity-60`}>"{projectResult.title}"</p>
               </div>
             </div>
-          )}
 
-          {/* Action Buttons */}
-          <div className="flex gap-3 justify-center">
-            <button
-              onClick={() => navigate(`/projects/${projectResult._id}`)}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg text-sm font-medium"
-            >
-              View Project
-            </button>
-            <button
-              onClick={() => navigate('/projects')}
-              className="border border-gray-300 text-gray-600 hover:bg-gray-50 px-6 py-2.5 rounded-lg text-sm font-medium"
-            >
-              Browse Projects
-            </button>
-            <button
-              onClick={() => navigate('/dashboard')}
-              className="border border-gray-300 text-gray-600 hover:bg-gray-50 px-6 py-2.5 rounded-lg text-sm font-medium"
-            >
-              Dashboard
-            </button>
+            {/* Duplicate Score Card */}
+            <div className={`border rounded-xl p-6 mb-6 text-center ${scoreConfig.border}`}>
+              <div className={`flex justify-center mb-3 ${scoreConfig.iconCls}`}>
+                {scoreConfig.icon}
+              </div>
+              <p className={`text-xs font-semibold uppercase tracking-wide mb-3 ${scoreConfig.valueCls}`}>
+                Duplicate Detection Result
+              </p>
+              <p className={`text-5xl font-bold mb-1 ${scoreConfig.valueCls}`}>{score}%</p>
+              <p className={`text-sm font-medium mb-3 ${scoreConfig.valueCls}`}>{scoreConfig.label}</p>
+              <p className={`text-xs ${t.metaText}`}>{scoreConfig.msg}</p>
+            </div>
+
+            {/* Similar Projects */}
+            {projectResult.similarProjects?.length > 0 && (
+              <div className="mb-6">
+                <p className={`text-xs font-semibold uppercase tracking-wide mb-3 ${t.metaText}`}>
+                  Similar Existing Projects
+                </p>
+                <div className="space-y-2">
+                  {projectResult.similarProjects.slice(0, 3).map((item, i) => (
+                    <div key={i} className={`flex items-center justify-between border rounded-xl px-4 py-3 ${t.similarRow}`}>
+                      <span className="text-sm truncate pr-4">{item.project?.title || item.title}</span>
+                      <span className={`text-xs font-bold px-2 py-1 rounded-full shrink-0 ${
+                        item.similarityScore >= 70 ? 'bg-red-500/10 text-red-400 border border-red-500/20' :
+                        item.similarityScore >= 40 ? 'bg-orange-500/10 text-orange-400 border border-orange-500/20' :
+                        isDark ? 'bg-white/8 text-white/40 border-white/10' : 'bg-gray-100 text-gray-500 border-gray-100'
+                      }`}>
+                        {item.similarityScore}%
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className={`flex gap-3 pt-4 border-t ${t.divider}`}>
+              <button
+                onClick={() => navigate(`/projects/${projectResult._id}`)}
+                className={`flex-1 flex items-center justify-center gap-2 text-sm py-2.5 rounded-xl font-medium transition ${t.submitBtn}`}
+              >
+                <IconEye /> View Project
+              </button>
+              <button
+                onClick={() => navigate('/projects')}
+                className={`flex-1 flex items-center justify-center gap-2 text-sm py-2.5 rounded-xl font-medium border transition ${t.actionBtn}`}
+              >
+                <IconGrid /> Browse Projects
+              </button>
+              <button
+                onClick={() => navigate('/dashboard')}
+                className={`flex-1 flex items-center justify-center gap-2 text-sm py-2.5 rounded-xl font-medium border transition ${t.actionBtn}`}
+              >
+                <IconHome /> Dashboard
+              </button>
+            </div>
           </div>
         </div>
       </div>
     )
   }
 
+  // ── Form ──
   return (
-    <div className="max-w-2xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-800">Post a Project</h1>
-        <p className="text-gray-500 mt-1">Share your project idea with the university community.</p>
-      </div>
+    <div className={`min-h-screen w-full transition-colors duration-300 ${t.page}`}>
+      <div className="max-w-2xl mx-auto px-6 pt-8 pb-16 space-y-5">
 
-      <div className="bg-white rounded-xl border border-gray-200 p-8">
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-lg mb-6">
-            {error}
-          </div>
-        )}
+        <button onClick={() => navigate('/projects')} className={`text-sm flex items-center gap-1.5 transition ${t.backBtn}`}>
+          <IconArrowLeft /> Back to Projects
+        </button>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Project Title *</label>
-            <input type="text" name="title" value={form.title} onChange={handleChange}
-              placeholder="e.g. AI-Powered Student Feedback System" required minLength={5} maxLength={100}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-          </div>
+        {/* Header Bar */}
+        <div className={`rounded-xl px-6 py-4 ${t.sectionHdr}`}>
+          <h1 className={`text-base font-semibold ${t.sectionTitle}`}>Post a Project</h1>
+          <p className={`text-xs mt-0.5 ${t.sectionTitle} opacity-60`}>Share your project idea with the university community.</p>
+        </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description *</label>
-            <textarea name="description" value={form.description} onChange={handleChange}
-              placeholder="Describe your project idea in detail (minimum 20 characters)..."
-              required minLength={20} maxLength={2000} rows={4}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
-          </div>
+        {/* Form Card */}
+        <div className={`rounded-xl border p-7 ${t.card}`}>
+          {error && (
+            <div className={`text-sm px-4 py-3 rounded-xl border mb-6 ${t.errorBg}`}>{error}</div>
+          )}
 
-          <div className="grid grid-cols-2 gap-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
+
+            {/* Title */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Category *</label>
-              <select name="category" value={form.category} onChange={handleChange} required
-                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="">Select category</option>
-                {CATEGORIES.map((cat) => <option key={cat} value={cat}>{cat}</option>)}
-              </select>
+              <label className={`block text-sm font-medium mb-1.5 ${t.label}`}>Project Title *</label>
+              <input type="text" name="title" value={form.title} onChange={handleChange}
+                placeholder="e.g. AI-Powered Student Feedback System"
+                required minLength={5} maxLength={100}
+                className={`w-full border rounded-xl px-4 py-2.5 text-sm outline-none transition ${t.input}`} />
             </div>
+
+            {/* Description */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Team Size *</label>
-              <input type="number" name="teamSize" value={form.teamSize} onChange={handleChange}
-                placeholder="e.g. 3" min={1} max={10} required
-                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <label className={`block text-sm font-medium mb-1.5 ${t.label}`}>Description *</label>
+              <textarea name="description" value={form.description} onChange={handleChange}
+                placeholder="Describe your project idea in detail (minimum 20 characters)..."
+                required minLength={20} maxLength={2000} rows={4}
+                className={`w-full border rounded-xl px-4 py-2.5 text-sm outline-none resize-none transition ${t.input}`} />
             </div>
-          </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Skills Needed <span className="text-gray-400 font-normal">(comma-separated)</span>
-            </label>
-            <input type="text" name="skillsNeeded" value={form.skillsNeeded} onChange={handleChange}
-              placeholder="e.g. React, Python, Machine Learning"
-              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-          </div>
+            {/* Category + Team Size */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className={`block text-sm font-medium mb-1.5 ${t.label}`}>Category *</label>
+                <select name="category" value={form.category} onChange={handleChange} required
+                  className={`w-full border rounded-xl px-4 py-2.5 text-sm outline-none transition ${t.select}`}>
+                  <option value="">Select category</option>
+                  {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className={`block text-sm font-medium mb-1.5 ${t.label}`}>Team Size *</label>
+                <input type="number" name="teamSize" value={form.teamSize} onChange={handleChange}
+                  placeholder="e.g. 3" min={1} max={10} required
+                  className={`w-full border rounded-xl px-4 py-2.5 text-sm outline-none transition ${t.input}`} />
+              </div>
+            </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Tags <span className="text-gray-400 font-normal">(comma-separated)</span>
-            </label>
-            <input type="text" name="tags" value={form.tags} onChange={handleChange}
-              placeholder="e.g. ai, healthcare, fintech"
-              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-          </div>
+            {/* Skills */}
+            <div>
+              <label className={`block text-sm font-medium mb-1.5 ${t.label}`}>
+                Skills Needed <span className={`font-normal ${t.labelSub}`}>(comma-separated)</span>
+              </label>
+              <input type="text" name="skillsNeeded" value={form.skillsNeeded} onChange={handleChange}
+                placeholder="e.g. React, Python, Machine Learning"
+                className={`w-full border rounded-xl px-4 py-2.5 text-sm outline-none transition ${t.input}`} />
+            </div>
 
-          <div className="flex items-center gap-3">
-            <input type="checkbox" name="isAnonymous" id="isAnonymous" checked={form.isAnonymous}
-              onChange={handleChange} className="w-4 h-4 accent-blue-600" />
-            <label htmlFor="isAnonymous" className="text-sm text-gray-700">
-              Post anonymously (your name will be hidden from other users)
-            </label>
-          </div>
+            {/* Tags */}
+            <div>
+              <label className={`block text-sm font-medium mb-1.5 ${t.label}`}>
+                Tags <span className={`font-normal ${t.labelSub}`}>(comma-separated)</span>
+              </label>
+              <input type="text" name="tags" value={form.tags} onChange={handleChange}
+                placeholder="e.g. ai, healthcare, fintech"
+                className={`w-full border rounded-xl px-4 py-2.5 text-sm outline-none transition ${t.input}`} />
+            </div>
 
-          <div className="flex gap-3 pt-2">
-            <button type="submit" disabled={loading}
-              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-6 py-2.5 rounded-lg text-sm font-medium">
-              {loading ? 'Checking for duplicates...' : 'Post Project'}
-            </button>
-            <button type="button" onClick={() => navigate('/dashboard')}
-              className="border border-gray-300 text-gray-600 hover:bg-gray-50 px-6 py-2.5 rounded-lg text-sm font-medium">
-              Cancel
-            </button>
-          </div>
-        </form>
+            {/* Anonymous toggle */}
+            <div className={`flex items-center gap-3 py-3 px-4 rounded-xl border ${isDark ? 'border-white/8 bg-white/3' : 'border-gray-100 bg-gray-50'}`}>
+              <input type="checkbox" name="isAnonymous" id="isAnonymous"
+                checked={form.isAnonymous} onChange={handleChange}
+                className="w-4 h-4 accent-current" />
+              <label htmlFor="isAnonymous" className={`text-sm cursor-pointer ${t.checkLabel}`}>
+                Post anonymously — your name will be hidden from other users
+              </label>
+            </div>
+
+            {/* Buttons */}
+            <div className={`flex gap-3 pt-2 border-t ${t.divider}`}>
+              <button type="submit" disabled={loading}
+                className={`px-6 py-2.5 rounded-xl text-sm font-medium transition ${t.submitBtn}`}>
+                {loading ? 'Checking for duplicates...' : 'Post Project'}
+              </button>
+              <button type="button" onClick={() => navigate('/projects')}
+                className={`px-6 py-2.5 rounded-xl text-sm font-medium border transition ${t.cancelBtn}`}>
+                Cancel
+              </button>
+            </div>
+
+          </form>
+        </div>
       </div>
     </div>
   )
