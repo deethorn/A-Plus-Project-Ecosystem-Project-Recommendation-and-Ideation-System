@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import { useAuth } from '../hooks/useAuth'
 import { getMyProjects, deleteProject, updateProjectStatus } from '../services/projectService'
 import { getMyRequests, revokeRequest } from '../services/collaborationService'
+import { LampContainer } from '@/components/ui/lamp'
 
 export default function Dashboard() {
   const { user } = useAuth()
@@ -19,6 +21,7 @@ export default function Dashboard() {
   const [openDropdown, setOpenDropdown] = useState(null)
 
   const dropdownRef = useRef(null)
+
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
@@ -111,9 +114,9 @@ export default function Dashboard() {
   }
 
   const statusConfig = {
-    pending:  { bg: 'bg-yellow-50', border: 'border-yellow-200', text: 'text-yellow-700', label: '⏳ Pending' },
-    accepted: { bg: 'bg-green-50',  border: 'border-green-200',  text: 'text-green-700',  label: '✅ Accepted' },
-    rejected: { bg: 'bg-red-50',    border: 'border-red-200',    text: 'text-red-600',    label: '❌ Rejected' },
+    pending:  { border: 'border-yellow-500/30', text: 'text-yellow-400', bg: 'bg-yellow-500/10', label: '⏳ Pending' },
+    accepted: { border: 'border-green-500/30',  text: 'text-green-400',  bg: 'bg-green-500/10',  label: '✅ Accepted' },
+    rejected: { border: 'border-red-500/30',    text: 'text-red-400',    bg: 'bg-red-500/10',    label: '❌ Rejected' },
   }
 
   const ProjectDropdown = ({ project, isCompleted }) => (
@@ -124,21 +127,21 @@ export default function Dashboard() {
           setOpenDropdown(openDropdown === project._id ? null : project._id)
         }}
         disabled={deletingId === project._id || completingId === project._id}
-        className="shrink-0 text-xs bg-gray-50 hover:bg-gray-100 text-gray-600 border border-gray-200 px-3 py-1.5 rounded-lg font-medium disabled:opacity-50 flex items-center gap-1"
+        className="shrink-0 text-xs bg-transparent hover:bg-white/10 text-white/60 border border-white/20 px-3 py-1.5 rounded-lg font-medium disabled:opacity-50 flex items-center gap-1 transition"
       >
         {deletingId === project._id ? 'Deleting...' :
          completingId === project._id ? 'Updating...' : '⋯ Actions'}
       </button>
 
       {openDropdown === project._id && (
-        <div className="absolute right-0 top-9 z-20 bg-white border border-gray-200 rounded-xl shadow-lg w-52 py-1 text-sm">
+        <div className="absolute right-0 top-9 z-20 bg-zinc-950 border border-white/15 rounded-xl shadow-2xl shadow-black w-52 py-1 text-sm">
           <button
             onClick={(e) => {
               e.stopPropagation()
               setOpenDropdown(null)
               navigate(`/projects/${project._id}`)
             }}
-            className="w-full text-left px-4 py-2.5 hover:bg-gray-50 text-gray-700 flex items-center gap-2"
+            className="w-full text-left px-4 py-2.5 hover:bg-white/10 text-white/70 flex items-center gap-2 transition"
           >
             👁️ View Project
           </button>
@@ -146,24 +149,24 @@ export default function Dashboard() {
           {isCompleted ? (
             <button
               onClick={(e) => handleMarkActive(e, project._id)}
-              className="w-full text-left px-4 py-2.5 hover:bg-blue-50 text-blue-600 flex items-center gap-2"
+              className="w-full text-left px-4 py-2.5 hover:bg-white/10 text-white/70 flex items-center gap-2 transition"
             >
               🔄 Mark as Active
             </button>
           ) : (
             <button
               onClick={(e) => handleMarkComplete(e, project._id)}
-              className="w-full text-left px-4 py-2.5 hover:bg-green-50 text-green-700 flex items-center gap-2"
+              className="w-full text-left px-4 py-2.5 hover:bg-green-500/10 text-green-400 flex items-center gap-2 transition"
             >
               ✅ Mark as Completed
             </button>
           )}
 
-          <div className="border-t border-gray-100 my-1" />
+          <div className="border-t border-white/10 my-1" />
 
           <button
             onClick={(e) => handleDelete(e, project._id)}
-            className="w-full text-left px-4 py-2.5 hover:bg-red-50 text-red-500 flex items-center gap-2"
+            className="w-full text-left px-4 py-2.5 hover:bg-red-500/10 text-red-400 flex items-center gap-2 transition"
           >
             🗑️ Delete Project
           </button>
@@ -175,42 +178,48 @@ export default function Dashboard() {
   const ProjectCard = ({ project, isCompleted = false }) => (
     <div
       onClick={() => navigate(`/projects/${project._id}`)}
-      className={`border rounded-xl p-5 hover:shadow-sm transition cursor-pointer ${
-        isCompleted ? 'border-gray-100 bg-gray-50 opacity-80' : 'border-gray-200 hover:border-blue-300'
+      className={`border rounded-xl p-5 transition cursor-pointer bg-zinc-950 ${
+        isCompleted
+          ? 'border-white/10 opacity-60 hover:opacity-80 hover:border-white/20'
+          : 'border-white/15 hover:border-white/40 hover:shadow-[0_0_25px_rgba(255,255,255,0.04)]'
       }`}
     >
       <div className="flex items-start justify-between">
         <div className="flex-1 pr-4">
-          <div className="flex items-center gap-2 mb-1">
-            <h3 className={`font-semibold ${isCompleted ? 'text-gray-500' : 'text-gray-800'}`}>
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
+            <h3 className={`font-semibold ${isCompleted ? 'text-white/40' : 'text-white'}`}>
               {project.title}
             </h3>
             {project.isAnonymous && (
-              <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">Anonymous</span>
+              <span className="text-xs bg-white/10 text-white/40 px-2 py-0.5 rounded-full border border-white/10">
+                Anonymous
+              </span>
             )}
             {isCompleted && (
-              <span className="text-xs bg-green-100 text-green-600 px-2 py-0.5 rounded-full font-medium">
+              <span className="text-xs bg-green-500/10 text-green-400 border border-green-500/20 px-2 py-0.5 rounded-full font-medium">
                 ✅ Completed
               </span>
             )}
           </div>
-          <p className="text-sm text-gray-500 mb-3 line-clamp-2">{project.description}</p>
+          <p className="text-sm text-white/35 mb-3 line-clamp-2">{project.description}</p>
           <div className="flex flex-wrap gap-2">
-            <span className="text-xs bg-blue-50 text-blue-600 px-3 py-1 rounded-full font-medium">
+            <span className="text-xs bg-white/10 text-white/60 px-3 py-1 rounded-full font-medium border border-white/10">
               {project.category}
             </span>
-            <span className="text-xs bg-gray-100 text-gray-600 px-3 py-1 rounded-full">
+            <span className="text-xs bg-white/5 text-white/40 px-3 py-1 rounded-full border border-white/10">
               Team: {project.currentTeamSize}/{project.teamSize}
             </span>
             {!isCompleted && (
-              <span className={`text-xs px-3 py-1 rounded-full font-medium ${
-                project.status === 'active' ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-500'
+              <span className={`text-xs px-3 py-1 rounded-full font-medium border ${
+                project.status === 'active'
+                  ? 'bg-green-500/10 text-green-400 border-green-500/20'
+                  : 'bg-white/5 text-white/30 border-white/10'
               }`}>
                 {project.status}
               </span>
             )}
             {project.duplicateScore > 50 && (
-              <span className="text-xs bg-orange-50 text-orange-600 border border-orange-200 px-2 py-1 rounded-full">
+              <span className="text-xs bg-orange-500/10 text-orange-400 border border-orange-500/20 px-2 py-1 rounded-full">
                 ⚠️ {project.duplicateScore}% similar
               </span>
             )}
@@ -222,183 +231,203 @@ export default function Dashboard() {
   )
 
   return (
-    <div className="space-y-6">
+    // Break out of Layout's px-4 py-8 to allow full-width lamp
+    <div className="-mx-4 -mt-8 bg-black min-h-screen">
 
-      <div>
-        <h1 className="text-2xl font-bold text-gray-800">
-          Welcome back, {user?.name || 'Student'} 👋
-        </h1>
-        <p className="text-gray-500 mt-1">Manage your project ideas and find collaborators.</p>
-      </div>
-
-      {/* Stat Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div
-          onClick={() => document.getElementById('my-projects-section').scrollIntoView({ behavior: 'smooth' })}
-          className="bg-white rounded-xl border border-gray-200 p-5 cursor-pointer hover:border-blue-300 hover:shadow-sm transition"
+      {/* ── LAMP HERO ── */}
+      <LampContainer>
+        <motion.div
+          initial={{ opacity: 0.5, y: 80 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.8, ease: 'easeInOut' }}
+          className="flex flex-col items-center text-center px-4"
         >
-          <p className="text-sm text-gray-500">My Projects</p>
-          <p className="text-3xl font-bold text-blue-600 mt-1">{loading ? '...' : activeProjects.length}</p>
-          <p className="text-xs text-blue-400 mt-2">View my projects ↓</p>
-        </div>
-
-        <div
-          onClick={() => document.getElementById('collab-section').scrollIntoView({ behavior: 'smooth' })}
-          className="bg-white rounded-xl border border-gray-200 p-5 cursor-pointer hover:border-green-300 hover:shadow-sm transition"
-        >
-          <p className="text-sm text-gray-500">Collaborations</p>
-          <p className="text-3xl font-bold text-green-600 mt-1">{loading ? '...' : requests.length}</p>
-          <p className="text-xs text-green-400 mt-2">
-            {pendingCount > 0 ? `${pendingCount} pending ↓` : 'View requests ↓'}
+          <h1 className="text-5xl md:text-7xl font-bold text-white tracking-tight leading-tight">
+            What's The Big Idea?
+          </h1>
+          <p className="mt-4 text-base md:text-lg text-white/50 max-w-xl leading-relaxed">
+            APPE helps university students ideate, post, and collaborate on academic projects.
           </p>
-        </div>
-
-        <div
-          onClick={() => completedProjects.length > 0 &&
-            document.getElementById('completed-section').scrollIntoView({ behavior: 'smooth' })}
-          className={`bg-white rounded-xl border border-gray-200 p-5 transition ${
-            completedProjects.length > 0 ? 'cursor-pointer hover:border-purple-300 hover:shadow-sm' : 'cursor-default'
-          }`}
-        >
-          <p className="text-sm text-gray-500">Completed</p>
-          <p className="text-3xl font-bold text-purple-600 mt-1">{loading ? '...' : completedProjects.length}</p>
-          <p className="text-xs text-purple-400 mt-2">
-            {completedProjects.length > 0 ? 'View completed ↓' : 'No completed projects yet'}
+          <p className="mt-3 text-sm text-white/25">
+            Welcome back, {user?.name || 'Student'} 👋
           </p>
-        </div>
-      </div>
+        </motion.div>
+      </LampContainer>
 
-      {deleteError && (
-        <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-lg">
-          {deleteError}
-        </div>
-      )}
+      {/* ── MAIN CONTENT ── */}
+      <div className="px-4 pb-12 space-y-6 max-w-6xl mx-auto">
 
-      {/* Active Projects */}
-      <div id="my-projects-section" className="bg-white rounded-xl border border-gray-200 p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-semibold text-gray-800">My Projects</h2>
-          <Link
-            to="/projects/new"
-            className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg font-medium"
+        {/* Stat Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div
+            onClick={() => document.getElementById('my-projects-section').scrollIntoView({ behavior: 'smooth' })}
+            className="bg-zinc-950 rounded-xl border border-white/15 p-5 cursor-pointer hover:border-white/40 hover:shadow-[0_0_25px_rgba(255,255,255,0.04)] transition"
           >
-            + Post Project
-          </Link>
+            <p className="text-sm text-white/40">My Projects</p>
+            <p className="text-3xl font-bold text-white mt-1">{loading ? '—' : activeProjects.length}</p>
+            <p className="text-xs text-white/25 mt-2">View my projects ↓</p>
+          </div>
+
+          <div
+            onClick={() => document.getElementById('collab-section').scrollIntoView({ behavior: 'smooth' })}
+            className="bg-zinc-950 rounded-xl border border-white/15 p-5 cursor-pointer hover:border-white/40 hover:shadow-[0_0_25px_rgba(255,255,255,0.04)] transition"
+          >
+            <p className="text-sm text-white/40">Collaborations</p>
+            <p className="text-3xl font-bold text-white mt-1">{loading ? '—' : requests.length}</p>
+            <p className="text-xs text-white/25 mt-2">
+              {pendingCount > 0 ? `${pendingCount} pending ↓` : 'View requests ↓'}
+            </p>
+          </div>
+
+          <div
+            onClick={() => completedProjects.length > 0 &&
+              document.getElementById('completed-section').scrollIntoView({ behavior: 'smooth' })}
+            className={`bg-zinc-950 rounded-xl border border-white/15 p-5 transition ${
+              completedProjects.length > 0
+                ? 'cursor-pointer hover:border-white/40 hover:shadow-[0_0_25px_rgba(255,255,255,0.04)]'
+                : 'cursor-default'
+            }`}
+          >
+            <p className="text-sm text-white/40">Completed</p>
+            <p className="text-3xl font-bold text-white mt-1">{loading ? '—' : completedProjects.length}</p>
+            <p className="text-xs text-white/25 mt-2">
+              {completedProjects.length > 0 ? 'View completed ↓' : 'No completed projects yet'}
+            </p>
+          </div>
         </div>
 
-        {loading && <p className="text-sm text-gray-400 text-center py-8">Loading...</p>}
-        {!loading && error && <p className="text-sm text-red-500 text-center py-8">{error}</p>}
-
-        {!loading && !error && activeProjects.length === 0 && (
-          <div className="text-center py-12 text-gray-400">
-            <p className="text-4xl mb-3">📂</p>
-            <p className="font-medium">No active projects</p>
-            <p className="text-sm mt-1">Post your first project idea to get started</p>
+        {/* Error Banner */}
+        {deleteError && (
+          <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm px-4 py-3 rounded-lg">
+            {deleteError}
           </div>
         )}
 
-        {!loading && !error && activeProjects.length > 0 && (
-          <div className="space-y-4">
-            {activeProjects.map(project => (
-              <ProjectCard key={project._id} project={project} isCompleted={false} />
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Completed Projects */}
-      {!loading && completedProjects.length > 0 && (
-        <div id="completed-section" className="bg-white rounded-xl border border-gray-200 p-6">
+        {/* Active Projects */}
+        <div id="my-projects-section" className="bg-zinc-950 rounded-xl border border-white/15 p-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-semibold text-gray-800">
-              Completed Projects
-              <span className="ml-2 text-xs bg-green-100 text-green-600 px-2 py-0.5 rounded-full font-medium">
-                {completedProjects.length}
-              </span>
-            </h2>
+            <h2 className="text-lg font-semibold text-white">My Projects</h2>
+            <Link
+              to="/projects/new"
+              className="text-sm text-black bg-white hover:bg-white/90 px-4 py-2 rounded-lg font-medium transition"
+            >
+              + Post Project
+            </Link>
           </div>
-          <div className="space-y-4">
-            {completedProjects.map(project => (
-              <ProjectCard key={project._id} project={project} isCompleted={true} />
-            ))}
-          </div>
-        </div>
-      )}
 
-      {/* Collaboration Requests */}
-      <div id="collab-section" className="bg-white rounded-xl border border-gray-200 p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-semibold text-gray-800">
-            My Collaboration Requests
-            {pendingCount > 0 && (
-              <span className="ml-2 text-xs bg-yellow-500 text-white px-2 py-0.5 rounded-full">
-                {pendingCount} pending
-              </span>
-            )}
-          </h2>
-          <button
-            onClick={() => navigate('/projects')}
-            className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-          >
-            Browse Projects →
-          </button>
+          {loading && <p className="text-sm text-white/30 text-center py-8">Loading...</p>}
+          {!loading && error && <p className="text-sm text-red-400 text-center py-8">{error}</p>}
+
+          {!loading && !error && activeProjects.length === 0 && (
+            <div className="text-center py-12">
+              <p className="text-4xl mb-3">📂</p>
+              <p className="font-medium text-white/50">No active projects</p>
+              <p className="text-sm mt-1 text-white/30">Post your first project idea to get started</p>
+            </div>
+          )}
+
+          {!loading && !error && activeProjects.length > 0 && (
+            <div className="space-y-4">
+              {activeProjects.map(project => (
+                <ProjectCard key={project._id} project={project} isCompleted={false} />
+              ))}
+            </div>
+          )}
         </div>
 
-        {loading && <p className="text-sm text-gray-400 text-center py-8">Loading...</p>}
-
-        {!loading && requests.length === 0 && (
-          <div className="text-center py-12 text-gray-400">
-            <p className="text-4xl mb-3">🤝</p>
-            <p className="font-medium">No collaboration requests yet</p>
-            <p className="text-sm mt-1">Find a project you like and request to join</p>
+        {/* Completed Projects */}
+        {!loading && completedProjects.length > 0 && (
+          <div id="completed-section" className="bg-zinc-950 rounded-xl border border-white/15 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-semibold text-white">
+                Completed Projects
+                <span className="ml-2 text-xs bg-green-500/10 text-green-400 border border-green-500/20 px-2 py-0.5 rounded-full font-medium">
+                  {completedProjects.length}
+                </span>
+              </h2>
+            </div>
+            <div className="space-y-4">
+              {completedProjects.map(project => (
+                <ProjectCard key={project._id} project={project} isCompleted={true} />
+              ))}
+            </div>
           </div>
         )}
 
-        {!loading && requests.length > 0 && (
-          <div className="space-y-4">
-            {requests.map((req) => {
-              const config = statusConfig[req.status] || statusConfig.pending
-              return (
-                <div
-                  key={req._id}
-                  onClick={() => navigate(`/projects/${req.project?._id}`)}
-                  className={`border ${config.border} rounded-xl p-5 hover:shadow-sm transition cursor-pointer ${config.bg}`}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-gray-800 mb-1">
-                        {req.project?.title || 'Untitled Project'}
-                      </h3>
-                      <p className="text-xs text-gray-400 mb-2">
-                        {req.project?.category} · Requested {new Date(req.createdAt).toLocaleDateString()}
-                      </p>
-                      {req.message && (
-                        <p className="text-sm text-gray-500 italic line-clamp-1">"{req.message}"</p>
-                      )}
-                    </div>
-                    <div className="ml-4 flex flex-col items-end gap-2">
-                      <span className={`shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full border ${config.border} ${config.bg} ${config.text}`}>
-                        {config.label}
-                      </span>
-                      {/* Only show revoke on pending requests */}
-                      {req.status === 'pending' && (
-                        <button
-                          onClick={(e) => handleRevokeRequest(e, req._id)}
-                          disabled={revokingId === req._id}
-                          className="text-xs text-red-400 hover:text-red-600 border border-red-200 hover:bg-red-50 px-3 py-1 rounded-lg disabled:opacity-50 transition"
-                        >
-                          {revokingId === req._id ? 'Revoking...' : '✕ Revoke'}
-                        </button>
-                      )}
+        {/* Collaboration Requests */}
+        <div id="collab-section" className="bg-zinc-950 rounded-xl border border-white/15 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-lg font-semibold text-white">
+              My Collaboration Requests
+              {pendingCount > 0 && (
+                <span className="ml-2 text-xs bg-yellow-500/15 text-yellow-400 border border-yellow-500/30 px-2 py-0.5 rounded-full">
+                  {pendingCount} pending
+                </span>
+              )}
+            </h2>
+            <button
+              onClick={() => navigate('/projects')}
+              className="text-sm text-white/40 hover:text-white font-medium transition"
+            >
+              Browse Projects →
+            </button>
+          </div>
+
+          {loading && <p className="text-sm text-white/30 text-center py-8">Loading...</p>}
+
+          {!loading && requests.length === 0 && (
+            <div className="text-center py-12">
+              <p className="text-4xl mb-3">🤝</p>
+              <p className="font-medium text-white/50">No collaboration requests yet</p>
+              <p className="text-sm mt-1 text-white/30">Find a project you like and request to join</p>
+            </div>
+          )}
+
+          {!loading && requests.length > 0 && (
+            <div className="space-y-4">
+              {requests.map((req) => {
+                const config = statusConfig[req.status] || statusConfig.pending
+                return (
+                  <div
+                    key={req._id}
+                    onClick={() => navigate(`/projects/${req.project?._id}`)}
+                    className={`border ${config.border} rounded-xl p-5 transition cursor-pointer ${config.bg} hover:brightness-125`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-white mb-1">
+                          {req.project?.title || 'Untitled Project'}
+                        </h3>
+                        <p className="text-xs text-white/30 mb-2">
+                          {req.project?.category} · Requested {new Date(req.createdAt).toLocaleDateString()}
+                        </p>
+                        {req.message && (
+                          <p className="text-sm text-white/40 italic line-clamp-1">"{req.message}"</p>
+                        )}
+                      </div>
+                      <div className="ml-4 flex flex-col items-end gap-2">
+                        <span className={`shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full border ${config.border} ${config.bg} ${config.text}`}>
+                          {config.label}
+                        </span>
+                        {req.status === 'pending' && (
+                          <button
+                            onClick={(e) => handleRevokeRequest(e, req._id)}
+                            disabled={revokingId === req._id}
+                            className="text-xs text-red-400 hover:text-red-300 border border-red-500/20 hover:bg-red-500/10 px-3 py-1 rounded-lg disabled:opacity-50 transition"
+                          >
+                            {revokingId === req._id ? 'Revoking...' : '✕ Revoke'}
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              )
-            })}
-          </div>
-        )}
-      </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
 
+      </div>
     </div>
   )
 }
