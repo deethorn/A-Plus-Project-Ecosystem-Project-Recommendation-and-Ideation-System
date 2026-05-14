@@ -9,13 +9,28 @@ const notificationService = require('../services/notificationService');
 
 const createRequestValidation = [
   body('projectId').notEmpty().withMessage('Project ID is required'),
-  body('message').optional().isLength({ max: 500 }).withMessage('Message cannot exceed 500 characters')
+  body('message').optional().isLength({ max: 500 }).withMessage('Message cannot exceed 500 characters'),
+  body('motivation').optional().isLength({ max: 500 }).withMessage('Motivation cannot exceed 500 characters'),
+  body('skills').optional().isLength({ max: 300 }).withMessage('Skills cannot exceed 300 characters'),
+  body('interests').optional().isLength({ max: 300 }).withMessage('Interests cannot exceed 300 characters'),
+  body('levelOfStudy').optional().isLength({ max: 100 }).withMessage('Level of study cannot exceed 100 characters'),
+  body('programmeOfStudy').optional().isLength({ max: 200 }).withMessage('Programme of study cannot exceed 200 characters'),
 ];
 
 // @route   POST /api/collaboration-requests
 router.post('/', auth, createRequestValidation, validateRequest, async (req, res) => {
   try {
-    const { projectId, message } = req.body;
+    const {
+      projectId,
+      message,
+      motivation,
+      skills,
+      interests,
+      levelOfStudy,
+      programmeOfStudy, 
+      department, 
+      requestedRole
+    } = req.body;
 
     const project = await Project.findById(projectId);
     if (!project) {
@@ -53,14 +68,22 @@ router.post('/', auth, createRequestValidation, validateRequest, async (req, res
       return res.status(400).json({ success: false, message: 'You already have a pending request for this project' });
     }
 
+    // ── Save undefined as null so frontend can distinguish "not provided" from "" ──
     const collaborationRequest = await CollaborationRequest.create({
-      project: projectId,
-      requester: req.user._id,
-      message: message || '',
-      requestedRole: 'member'
+      project:          projectId,
+      requester:        req.user._id,
+      requestedRole:    'member',
+      message:          message          || null,
+      motivation:       motivation       || null,
+      skills:           skills           || null,
+      interests:        interests        || null,
+      levelOfStudy:     levelOfStudy     || null,
+      programmeOfStudy: programmeOfStudy || null,
+      department: department || null,
+      requestedRole: requestedRole || 'member',
     });
 
-    await collaborationRequest.populate('requester', 'name email institution profilePicture skills');
+    await collaborationRequest.populate('requester', 'name email institution profilePicture');
     await collaborationRequest.populate('project', 'title description');
 
     await notificationService.notifyCollaborationRequest(
@@ -87,8 +110,6 @@ router.post('/', auth, createRequestValidation, validateRequest, async (req, res
 });
 
 // @route   DELETE /api/collaboration-requests/:id/revoke
-// @desc    Requester cancels/revokes their own pending request
-// @access  Private
 router.delete('/:id/revoke', auth, async (req, res) => {
   try {
     const request = await CollaborationRequest.findById(req.params.id);
@@ -130,8 +151,9 @@ router.get('/project/:projectId', auth, async (req, res) => {
       return res.status(403).json({ success: false, message: 'Not authorized to view requests for this project' });
     }
 
+    // ── No .select() — return ALL fields from the document ──
     const requests = await CollaborationRequest.find({ project: req.params.projectId })
-      .populate('requester', 'name email institution profilePicture skills bio')
+      .populate('requester', 'name email institution profilePicture')
       .sort({ createdAt: -1 });
 
     res.json({ success: true, requests });
@@ -189,9 +211,15 @@ router.put('/:id/accept', auth, async (req, res) => {
     request.respondedAt = Date.now();
     await request.save();
 
+    const roleMap = {
+      student:    'student',
+      supervisor: 'supervisor',
+      hod:        'hod',
+    }
+
     request.project.teamMembers.push({
-      user: request.requester._id,
-      role: 'member',
+      user:     request.requester._id,
+      role:     roleMap[request.requestedRole] || 'member',
       joinedAt: Date.now()
     });
     request.project.currentTeamSize += 1;
@@ -217,7 +245,9 @@ router.put('/:id/reject', auth, async (req, res) => {
   try {
     const { responseMessage } = req.body || {};
 
-    const request = await CollaborationRequest.findById(req.params.id).populate('project');
+    const request = await CollaborationRequest.findById(req.params.id)
+      .populate('requester', 'name email')
+      .populate('project');
 
     if (!request) {
       return res.status(404).json({ success: false, message: 'Request not found' });

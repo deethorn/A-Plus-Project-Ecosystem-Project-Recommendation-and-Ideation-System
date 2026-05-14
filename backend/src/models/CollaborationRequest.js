@@ -29,6 +29,36 @@ const collaborationRequestSchema = new mongoose.Schema({
     type: String,
     default: 'member'
   },
+  motivation: {
+    type: String,
+    trim: true,
+    maxlength: [500, 'Motivation cannot exceed 500 characters']
+  },
+  skills: {
+    type: String,
+    trim: true,
+    maxlength: [300, 'Skills cannot exceed 300 characters']
+  },
+  interests: {
+    type: String,
+    trim: true,
+    maxlength: [300, 'Interests cannot exceed 300 characters']
+  },
+  levelOfStudy: {
+    type: String,
+    trim: true,
+    maxlength: [100, 'Level of study cannot exceed 100 characters']
+  },
+  programmeOfStudy: {
+    type: String,
+    trim: true,
+    maxlength: [200, 'Programme of study cannot exceed 200 characters']
+  },
+  department: {
+    type: String,
+    trim: true,
+    maxlength: [200, 'Department cannot exceed 200 characters']
+  },
   responseMessage: {
     type: String,
     trim: true,

@@ -11,6 +11,7 @@ const notificationRoutes = require('./src/routes/notifications');
 const userRoutes = require('./src/routes/users');
 const recommendationRoutes = require('./src/routes/recommendations');
 const taskRoutes = require('./src/routes/tasks');
+const meetingRoutes = require('./src/routes/meetings');
 
 const app = express();
 
@@ -48,6 +49,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/recommendations', recommendationRoutes);
 app.use('/api/tasks', taskRoutes);
+app.use('/api/meetings', meetingRoutes);
 
 app.get('/health', (req, res) => {
   res.status(200).json({ success: true, message: 'APPE Backend is running', timestamp: new Date().toISOString() });

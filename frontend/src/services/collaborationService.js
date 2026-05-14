@@ -1,8 +1,8 @@
 import api from './api'
 
 // Send a collaboration request to join a project
-export const sendCollaborationRequest = async (projectId, message) => {
-  const response = await api.post('/collaboration-requests', { projectId, message })
+export const sendCollaborationRequest = async (projectId, fields) => {
+  const response = await api.post('/collaboration-requests', { projectId, ...fields })
   return response.data
 }
 

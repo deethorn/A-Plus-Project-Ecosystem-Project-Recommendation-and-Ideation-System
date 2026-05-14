@@ -23,17 +23,11 @@ const projectSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Category is required'],
     enum: [
-      'Web Development',
-      'Mobile App',
-      'Machine Learning',
-      'Data Science',
-      'IoT',
-      'Game Development',
-      'Blockchain',
-      'Cybersecurity',
-      'Cloud Computing',
-      'Other'
-    ]
+      'Accounting', 'Banking & Finance', 'Entrepreneurship', 'Human Resource Management', 'Marketing', 'Advertising & Public Relations', 
+  'Mass Communication & Journalism', 'Artificial Intelligence', 'Computer Science', 'Information Technology', 'Biomedical Engineering', 
+  'Computer Engineering', 'Electrical & Electronics Engineering', 'Electronics & Computer Engineering', 'Unmanned Aerial Systems (UAS) Engineering', 
+  'Industrial & Systems Engineering', 'Mechanical Engineering', 'Nuclear Engineering', 'Robotics Engineering', 'Other',
+  ]
   },
   tags: [{
     type: String,
@@ -50,6 +44,24 @@ const projectSchema = new mongoose.Schema({
     max: [10, 'Team size cannot exceed 10'],
     default: 1
   },
+
+  // ── Timeline (kept for backward compatibility with old records) ──
+  timeline: {
+    type: String,
+    trim: true,
+    maxlength: [100, 'Timeline cannot exceed 100 characters']
+  },
+
+  // ── New split date fields ──
+  startDate: {
+    type: Date,
+    default: null
+  },
+  endDate: {
+    type: Date,
+    default: null
+  },
+
   currentTeamSize: {
     type: Number,
     default: 1,
@@ -67,7 +79,7 @@ const projectSchema = new mongoose.Schema({
     },
     role: {
       type: String,
-      enum: ['owner', 'member'],
+      enum: ['owner', 'hod', 'supervisor', 'student', 'member'],
       default: 'member'
     },
     joinedAt: {
@@ -101,10 +113,10 @@ const projectSchema = new mongoose.Schema({
       ref: 'Project'
     },
     similarityScore: {
-      type: Number,
-      min: 0,
-      max: 100
-    }
+        type: Number,
+        min: 0,
+        max: 100
+      }
   }],
   views: {
     type: Number,
@@ -129,19 +141,19 @@ const projectSchema = new mongoose.Schema({
 });
 
 // Update 'updatedAt' on save
-projectSchema.pre('save', function() {
+projectSchema.pre('save', function () {
   this.updatedAt = Date.now();
 });
 
 // Method to check if team is full
-projectSchema.methods.isTeamFull = function() {
+projectSchema.methods.isTeamFull = function () {
   return this.currentTeamSize >= this.teamSize;
 };
 
 // Method to get public project info
-projectSchema.methods.toPublicProject = function() {
+projectSchema.methods.toPublicProject = function () {
   const project = this.toObject();
-  
+
   if (this.isAnonymous) {
     const ownerId = project.owner?._id || project.owner;
     project.owner = {
@@ -152,10 +164,9 @@ projectSchema.methods.toPublicProject = function() {
       profilePicture: null
     };
   }
-  
+
   return project;
 };
-
 
 // Index for text search
 projectSchema.index({ title: 'text', description: 'text', tags: 'text' });
@@ -164,5 +175,6 @@ projectSchema.index({ title: 'text', description: 'text', tags: 'text' });
 projectSchema.index({ category: 1, status: 1, visibility: 1 });
 projectSchema.index({ owner: 1 });
 projectSchema.index({ createdAt: -1 });
+projectSchema.index({ startDate: 1, endDate: 1 });
 
 module.exports = mongoose.model('Project', projectSchema);

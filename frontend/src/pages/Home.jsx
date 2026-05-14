@@ -118,7 +118,7 @@ export default function Home() {
           className="flex flex-col items-center text-center px-4"
         >
           <h1 className="text-5xl md:text-7xl font-bold text-white tracking-tight leading-tight">
-            What's The Big Idea?
+            What's The BIG IDEA?
           </h1>
           <p className="mt-5 text-base md:text-lg text-white/75 max-w-xl leading-relaxed">
             APPE helps university students ideate, post, and collaborate on academic projects.

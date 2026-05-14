@@ -13,14 +13,14 @@ const createProjectValidation = [
   body('category').notEmpty().withMessage('Category is required'),
   body('teamSize').optional().isInt({ min: 1, max: 10 }).withMessage('Team size must be 1-10'),
   body('tags').optional().isArray().withMessage('Tags must be an array'),
-  body('skillsNeeded').optional().isArray().withMessage('Skills must be an array')
+  body('skillsNeeded').optional().isArray().withMessage('Skills must be an array'),
+  body('timeline').optional().isLength({ max: 100 }).withMessage('Timeline cannot exceed 100 characters'),
 ];
 
 // @route   POST /api/projects
 router.post('/', auth, createProjectValidation, validateRequest, async (req, res) => {
   try {
-    const { title, description, category, tags, skillsNeeded, teamSize, isAnonymous } = req.body;
-
+    const { title, description, category, tags, skillsNeeded, teamSize, isAnonymous, timeline, startDate, endDate } = req.body;
     const existingProjects = await Project.find({
       status: 'active',
       visibility: 'public'
@@ -39,6 +39,9 @@ router.post('/', auth, createProjectValidation, validateRequest, async (req, res
       tags: tags || [],
       skillsNeeded: skillsNeeded || [],
       teamSize: teamSize || 1,
+      timeline: timeline || '',
+      startDate: startDate || null,
+      endDate: endDate || null,
       isAnonymous: isAnonymous || false,
       owner: req.user._id,
       teamMembers: [{ user: req.user._id, role: 'owner', joinedAt: Date.now() }],
@@ -177,7 +180,6 @@ router.get('/:id', async (req, res) => {
 });
 
 // @route   PATCH /api/projects/:id/status
-// @desc    Update project status — owner only
 router.patch('/:id/status', auth, async (req, res) => {
   try {
     const { status } = req.body;
@@ -210,8 +212,6 @@ router.patch('/:id/status', auth, async (req, res) => {
 });
 
 // @route   DELETE /api/projects/:id/members/:memberId
-// @desc    Owner removes a team member from the project
-// @access  Private (owner only)
 router.delete('/:id/members/:memberId', auth, async (req, res) => {
   try {
     const project = await Project.findById(req.params.id);
@@ -224,7 +224,6 @@ router.delete('/:id/members/:memberId', auth, async (req, res) => {
       return res.status(403).json({ success: false, message: 'Only the project owner can remove members' });
     }
 
-    // Cannot remove the owner themselves
     if (req.params.memberId === req.user._id.toString()) {
       return res.status(400).json({ success: false, message: 'Project owner cannot be removed' });
     }
@@ -242,7 +241,6 @@ router.delete('/:id/members/:memberId', auth, async (req, res) => {
     project.currentTeamSize = Math.max(1, project.currentTeamSize - 1);
     await project.save();
 
-    // Notify removed member
     await notifyMemberRemoved(req.params.memberId, project.title, project._id);
 
     res.json({ success: true, message: 'Team member removed successfully' });
@@ -253,8 +251,6 @@ router.delete('/:id/members/:memberId', auth, async (req, res) => {
 });
 
 // @route   DELETE /api/projects/:id/leave
-// @desc    Team member leaves a project
-// @access  Private (team members only, not owner)
 router.delete('/:id/leave', auth, async (req, res) => {
   try {
     const project = await Project.findById(req.params.id);
@@ -263,7 +259,6 @@ router.delete('/:id/leave', auth, async (req, res) => {
       return res.status(404).json({ success: false, message: 'Project not found' });
     }
 
-    // Owner cannot leave their own project
     if (project.owner.toString() === req.user._id.toString()) {
       return res.status(400).json({
         success: false,
