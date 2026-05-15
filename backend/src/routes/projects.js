@@ -147,10 +147,17 @@ router.get('/:id', async (req, res) => {
     const isOwner = !!(requestingUserId &&
       project.owner._id.toString() === requestingUserId)
 
-    if (!isOwner) {
-      await Project.findByIdAndUpdate(req.params.id, { $inc: { views: 1 } })
-      project.views += 1
-    }
+    if (requestingUserId && !isOwner) {
+      const alreadyViewed = project.viewedBy?.some(
+        userId => userId.toString() === requestingUserId
+      )
+
+      if (!alreadyViewed) {
+        project.views = (project.views || 0) + 1
+        project.viewedBy = [...(project.viewedBy || []), requestingUserId]
+        await project.save()
+      }
+  }
 
     const isAcceptedMember = !!(requestingUserId &&
       project.teamMembers.some(m => m.user?._id?.toString() === requestingUserId))

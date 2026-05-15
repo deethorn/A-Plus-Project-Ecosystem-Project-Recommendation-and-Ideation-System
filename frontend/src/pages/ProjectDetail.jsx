@@ -4,7 +4,7 @@ import { getProjectById, removeMember, leaveProject } from '../services/projectS
 import { sendCollaborationRequest, getProjectRequests, acceptRequest, rejectRequest } from '../services/collaborationService'
 import { useAuth } from '../hooks/useAuth'
 import { useTheme } from '../context/ThemeContext'
-import { getMeetings, scheduleMeeting, markAttendance, deleteMeeting } from '../services/meetingService'
+import { getMeetings, scheduleMeeting, updateMeeting, markAttendance, deleteMeeting } from '../services/meetingService'
 
 const IconArrowLeft = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -78,6 +78,22 @@ const IconUserX = () => (
 const IconChevronDown = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <polyline points="6 9 12 15 18 9"/>
+  </svg>
+)
+const IconMore = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="1" />
+    <circle cx="19" cy="12" r="1" />
+    <circle cx="5" cy="12" r="1" />
+  </svg>
+)
+const IconTrash = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="3 6 5 6 21 6" />
+    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+    <path d="M10 11v6" />
+    <path d="M14 11v6" />
+    <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
   </svg>
 )
 
@@ -297,9 +313,10 @@ export default function ProjectDetail() {
   const [showScheduleModal, setShowScheduleModal]   = useState(false)
   const [showAttendanceModal, setShowAttendanceModal] = useState(false)
   const [selectedMeeting, setSelectedMeeting]       = useState(null)
+  const [openMeetingMenuId, setOpenMeetingMenuId] = useState(null)
 
   // Schedule form state
-  const [mtTitle, setMtTitle]         = useState('')
+ const [mtTitle, setMtTitle]         = useState('')
   const [mtDate, setMtDate]           = useState('')
   const [mtVenue, setMtVenue]         = useState('online')
   const [mtLink, setMtLink]           = useState('')
@@ -307,6 +324,9 @@ export default function ProjectDetail() {
   const [mtAgenda, setMtAgenda]       = useState('')
   const [mtLoading, setMtLoading]     = useState(false)
   const [mtError, setMtError]         = useState('')
+  const [isEditingMeeting, setIsEditingMeeting] = useState(false)
+  const [editingMeetingId, setEditingMeetingId] = useState(null)
+  const [showMeetingDetailsModal, setShowMeetingDetailsModal] = useState(false)
 
   // Attendance form state
   const [attRecords, setAttRecords]         = useState([])
@@ -434,6 +454,7 @@ export default function ProjectDetail() {
   return () => { cancelled = true }
 }, [id, user])
 
+
   const handleJoinSubmit = async () => {
     setJoinLoading(true)
     setJoinError('')
@@ -512,21 +533,72 @@ export default function ProjectDetail() {
       setLeavingProject(false)
     }
   }
-  const handleScheduleMeeting = async () => {
-  setMtLoading(true); setMtError('')
+  const resetMeetingModal = () => {
+  setShowScheduleModal(false)
+  setIsEditingMeeting(false)
+  setEditingMeetingId(null)
+  setMtError('')
+  setMtTitle('')
+  setMtDate('')
+  setMtVenue('online')
+  setMtLink('')
+  setMtLocation('')
+  setMtAgenda('')
+}
+
+const openEditMeetingModal = (meeting) => {
+  setIsEditingMeeting(true)
+  setEditingMeetingId(meeting._id || meeting.id)
+  setMtTitle(meeting.title || '')
+  setMtDate(
+    meeting.date
+      ? new Date(meeting.date).toISOString().slice(0, 16)
+      : ''
+  )
+  setMtVenue(meeting.venue || 'online')
+  setMtLink(meeting.meetingLink || '')
+  setMtLocation(meeting.location || '')
+  setMtAgenda(meeting.agenda || '')
+  setMtError('')
+  setShowScheduleModal(true)
+}
+
+const openMeetingDetailsModal = (meeting) => {
+  setSelectedMeeting(meeting)
+  setShowMeetingDetailsModal(true)
+}
+
+const handleSaveMeeting = async () => {
+  setMtLoading(true)
+  setMtError('')
+
   try {
-    const result = await scheduleMeeting(id, {
-      title: mtTitle, date: mtDate, venue: mtVenue,
-      meetingLink: mtLink, location: mtLocation, agenda: mtAgenda
-    })
-    setMeetings(prev => [result.meeting, ...prev])
-    setShowScheduleModal(false)
-    setMtTitle(''); setMtDate(''); setMtVenue('online')
-    setMtLink(''); setMtLocation(''); setMtAgenda('')
+    const payload = {
+      title: mtTitle,
+      date: mtDate,
+      venue: mtVenue,
+      meetingLink: mtVenue === 'online' ? normalizeExternalLink(mtLink) : '',
+      location: mtVenue === 'in-person' ? mtLocation : '',
+      agenda: mtAgenda
+    }
+
+    if (isEditingMeeting && editingMeetingId) {
+      const result = await updateMeeting(editingMeetingId, payload)
+      setMeetings(prev =>
+        prev.map(m => ((m._id || m.id) === editingMeetingId ? result.meeting : m))
+      )
+    } else {
+      const result = await scheduleMeeting(id, payload)
+      setMeetings(prev => [result.meeting, ...prev])
+    }
+
+    resetMeetingModal()
   } catch (err) {
-    setMtError(err.response?.data?.message || 'Failed to schedule meeting.')
-  } finally { setMtLoading(false) }
+    setMtError(err.response?.data?.message || 'Failed to save meeting.')
+  } finally {
+    setMtLoading(false)
   }
+ }
 
   const openAttendanceModal = (meeting) => {
     setSelectedMeeting(meeting)
@@ -538,11 +610,11 @@ export default function ProjectDetail() {
   const handleMarkAttendance = async () => {
     setAttLoading(true)
     try {
-      const result = await markAttendance(selectedMeeting._id, {
+      const result = await markAttendance(selectedMeeting._id || selectedMeeting.id, {
         attendance: attRecords,
         progressRating: attRating
       })
-      setMeetings(prev => prev.map(m => m._id === selectedMeeting._id ? result.meeting : m))
+      setMeetings(prev => prev.map(m => (m._id || m.id) === (selectedMeeting._id || selectedMeeting.id) ? result.meeting : m))
       setShowAttendanceModal(false)
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to save attendance.')
@@ -553,11 +625,12 @@ export default function ProjectDetail() {
     if (!window.confirm('Delete this meeting?')) return
     try {
       await deleteMeeting(meetingId)
-      setMeetings(prev => prev.filter(m => m._id !== meetingId))
+      setMeetings(prev => prev.filter(m => (m._id || m.id) !== meetingId))
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to delete meeting.')
     }
   }
+  
 
   const resetModal = () => {
   setShowJoinModal(false)
@@ -615,6 +688,13 @@ export default function ProjectDetail() {
         Request to Join
       </button>
     )
+  }
+
+  const normalizeExternalLink = (url = '') => {
+    const trimmed = url.trim()
+    if (!trimmed) return ''
+    if (/^https?:\/\//i.test(trimmed)) return trimmed
+    return `https://${trimmed}`
   }
 
   const formatDate = (dateStr) => {
@@ -811,7 +891,18 @@ export default function ProjectDetail() {
               </div>
               {isOwner && !isCompleted && (
                 <button
-                  onClick={() => setShowScheduleModal(true)}
+                  onClick={() => {
+                    setIsEditingMeeting(false)
+                    setEditingMeetingId(null)
+                    setMtTitle('')
+                    setMtDate('')
+                    setMtVenue('online')
+                    setMtLink('')
+                    setMtLocation('')
+                    setMtAgenda('')
+                    setMtError('')
+                    setShowScheduleModal(true)
+                  }}
                   className="text-xs px-3 py-1.5 rounded-lg font-medium bg-white text-black hover:bg-gray-100 transition"
                 >
                   + Schedule Meeting
@@ -828,8 +919,8 @@ export default function ProjectDetail() {
                 {meetings.map(meeting => {
                   const isPast = new Date(meeting.date) < new Date()
                   return (
-                    <div key={meeting._id} className={`border rounded-xl p-4 ${t.reqCard}`}>
-                      <div className="flex items-start justify-between gap-4">
+                    <div key={meeting._id || meeting.id} className={`border rounded-xl p-4 ${t.reqCard}`}>
+                      <div className="flex items-start justify-between gap-4 relative">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap mb-1">
                             <p className={`text-sm font-semibold ${t.reqName}`}>{meeting.title}</p>
@@ -850,8 +941,11 @@ export default function ProjectDetail() {
                             {new Date(meeting.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                           </p>
                           {meeting.venue === 'online' && meeting.meetingLink && (
-                            <a href={meeting.meetingLink} target="_blank" rel="noopener noreferrer"
-                              className="text-xs text-blue-400 hover:underline truncate block mt-1">
+                            <a href={normalizeExternalLink(meeting.meetingLink)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={e => e.stopPropagation()}
+                              className="text-xs text-blue-400 hover:underline break-all block mt-1">
                               {meeting.meetingLink}
                             </a>
                           )}
@@ -864,24 +958,94 @@ export default function ProjectDetail() {
                             </p>
                           )}
                         </div>
-                        {isOwner && (
-                          <div className="shrink-0 flex flex-col gap-2 items-end">
-                            {isPast && (
-                              <button
-                                onClick={() => openAttendanceModal(meeting)}
-                                className={`text-xs px-3 py-1.5 rounded-lg border transition ${t.tasksBtn}`}
-                              >
-                                {meeting.attendanceMarked ? 'Edit Attendance' : 'Mark Attendance'}
-                              </button>
-                            )}
+                        <div className="shrink-0 flex flex-col gap-2 items-end">
+                          <button
+                            onClick={() => openMeetingDetailsModal(meeting)}
+                            className={`text-xs px-3 py-1.5 rounded-lg border transition ${t.tasksBtn}`}
+                          >
+                            View Details
+                          </button>
+
+                          <div className="shrink-0 relative">
                             <button
-                              onClick={() => handleDeleteMeeting(meeting._id)}
-                              className="text-xs text-red-400 hover:text-red-300 border border-red-500/20 hover:bg-red-500/10 px-2 py-1 rounded-lg transition"
+                              onClick={() =>
+                                setOpenMeetingMenuId(prev => prev === meeting._id ? null : meeting._id)
+                              }
+                              className={`inline-flex items-center gap-2 text-xs px-3 py-2 rounded-xl border font-medium transition ${
+                                isDark
+                                  ? 'bg-white/5 hover:bg-white/8 text-white/70 border-white/10'
+                                  : 'bg-white hover:bg-gray-50 text-gray-700 border-gray-200'
+                              }`}
                             >
-                              Delete
+                              <IconMore />
+                              Actions
                             </button>
+
+                            {openMeetingMenuId === meeting._id && (
+                              <div
+                                className={`absolute right-0 top-full mt-2 w-52 rounded-2xl border shadow-2xl overflow-hidden z-20 ${
+                                  isDark
+                                    ? 'bg-zinc-900 border-white/10'
+                                    : 'bg-white border-gray-200'
+                                }`}
+                              >
+                                <button
+                                  onClick={() => {
+                                    openMeetingDetailsModal(meeting)
+                                    setOpenMeetingMenuId(null)
+                                  }}
+                                  className={`w-full flex items-center gap-3 px-4 py-3 text-sm text-left transition ${
+                                    isDark ? 'hover:bg-white/5 text-white/80' : 'hover:bg-gray-50 text-gray-700'
+                                  }`}
+                                >
+                                  <IconEye />
+                                  View Details
+                                </button>
+
+                                {isOwner && !isCompleted && (
+                                  <button
+                                    onClick={() => {
+                                      openEditMeetingModal(meeting)
+                                      setOpenMeetingMenuId(null)
+                                    }}
+                                    className={`w-full flex items-center gap-3 px-4 py-3 text-sm text-left transition ${
+                                      isDark ? 'hover:bg-white/5 text-white/80' : 'hover:bg-gray-50 text-gray-700'
+                                    }`}
+                                  >
+                                    <IconClipboard />
+                                    Edit Meeting
+                                  </button>
+                                )}
+
+                                {isOwner && isPast && (
+                                  <button
+                                    onClick={() => {
+                                      openAttendanceModal(meeting)
+                                      setOpenMeetingMenuId(null)
+                                    }}
+                                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left text-green-400 hover:bg-green-500/10 transition"
+                                  >
+                                    <IconCheck />
+                                    {meeting.attendanceMarked ? 'Edit Attendance' : 'Mark Attendance'}
+                                  </button>
+                                )}
+
+                                {isOwner && (
+                                  <button
+                                    onClick={() => {
+                                      handleDeleteMeeting(meeting._id)
+                                      setOpenMeetingMenuId(null)
+                                    }}
+                                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left text-red-400 hover:bg-red-500/10 transition border-t border-white/5"
+                                  >
+                                    <IconTrash />
+                                    Delete Meeting
+                                  </button>
+                                )}
+                              </div>
+                            )}
                           </div>
-                        )}
+                        </div>
                       </div>
                     </div>
                   )
@@ -951,11 +1115,12 @@ export default function ProjectDetail() {
               </div>
 
               <div className="flex gap-3">
-                <button onClick={handleScheduleMeeting} disabled={mtLoading || !mtTitle || !mtDate}
+                <button onClick={handleSaveMeeting}
+                  disabled={mtLoading || !mtTitle || !mtDate}
                   className="flex-1 bg-white hover:bg-gray-100 disabled:opacity-50 text-black py-2.5 rounded-xl text-sm font-medium transition">
-                  {mtLoading ? 'Scheduling...' : 'Schedule'}
+                  {mtLoading ? (isEditingMeeting ? 'Saving...' : 'Scheduling...') : (isEditingMeeting ? 'Save Changes' : 'Schedule')}
                 </button>
-                <button onClick={() => { setShowScheduleModal(false); setMtError('') }}
+                <button onClick={resetMeetingModal}
                   className={`flex-1 border py-2.5 rounded-xl text-sm font-medium transition ${t.cancelBtn}`}>
                   Cancel
                 </button>
@@ -1021,6 +1186,74 @@ export default function ProjectDetail() {
                 <button onClick={() => setShowAttendanceModal(false)}
                   className={`flex-1 border py-2.5 rounded-xl text-sm font-medium transition ${t.cancelBtn}`}>
                   Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showMeetingDetailsModal && selectedMeeting && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 px-4">
+            <div className={`rounded-2xl p-6 w-full max-w-md shadow-2xl overflow-y-auto max-h-[90vh] ${t.modal}`}>
+              <h3 className={`text-lg font-semibold mb-1 ${t.modalHeading}`}>
+                {selectedMeeting.title}
+              </h3>
+
+              <p className={`text-sm mb-4 ${t.modalSub}`}>
+                {new Date(selectedMeeting.date).toLocaleDateString('en-GB', {
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })}
+              </p>
+
+              <div className="space-y-4">
+                <div>
+                  <p className={`text-xs font-semibold uppercase tracking-wide mb-1 ${t.reqMeta}`}>Venue</p>
+                  <p className={`text-sm ${t.reqName}`}>
+                    {selectedMeeting.venue === 'online' ? 'Online' : 'In-Person'}
+                  </p>
+                </div>
+
+                {selectedMeeting.venue === 'online' && selectedMeeting.meetingLink && (
+                  <div>
+                    <p className={`text-xs font-semibold uppercase tracking-wide mb-1 ${t.reqMeta}`}>Meeting Link</p>
+                    <a
+                      href={normalizeExternalLink(selectedMeeting.meetingLink)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-blue-400 hover:underline break-all"
+                    >
+                      {selectedMeeting.meetingLink}
+                    </a>
+                  </div>
+                )}
+
+                {selectedMeeting.venue === 'in-person' && selectedMeeting.location && (
+                  <div>
+                    <p className={`text-xs font-semibold uppercase tracking-wide mb-1 ${t.reqMeta}`}>Location</p>
+                    <p className={`text-sm ${t.reqName}`}>{selectedMeeting.location}</p>
+                  </div>
+                )}
+
+                {selectedMeeting.agenda && (
+                  <div>
+                    <p className={`text-xs font-semibold uppercase tracking-wide mb-1 ${t.reqMeta}`}>Agenda</p>
+                    <p className={`text-sm px-3 py-2 rounded-lg border italic ${t.reqMsg}`}>
+                      {selectedMeeting.agenda}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-6">
+                <button
+                  onClick={() => setShowMeetingDetailsModal(false)}
+                  className={`w-full border py-2.5 rounded-xl text-sm font-medium transition ${t.cancelBtn}`}
+                >
+                  Close
                 </button>
               </div>
             </div>

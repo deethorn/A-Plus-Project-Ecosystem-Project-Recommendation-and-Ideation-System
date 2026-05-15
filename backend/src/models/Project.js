@@ -118,6 +118,10 @@ const projectSchema = new mongoose.Schema({
         max: 100
       }
   }],
+  viewedBy: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+ }],
   views: {
     type: Number,
     default: 0

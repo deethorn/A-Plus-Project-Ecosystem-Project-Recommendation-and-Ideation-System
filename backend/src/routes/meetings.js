@@ -118,4 +118,35 @@ router.delete('/:meetingId', auth, async (req, res) => {
   }
 });
 
+// @route   PUT /api/meetings/:meetingId
+router.put('/:meetingId', auth, async (req, res) => {
+  try {
+    const meeting = await Meeting.findById(req.params.meetingId).populate('project');
+
+    if (!meeting) {
+      return res.status(404).json({ success: false, message: 'Meeting not found' });
+    }
+
+    if (meeting.project.owner.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, message: 'Only the project owner can edit meetings' });
+    }
+
+    const { title, date, venue, meetingLink, location, agenda } = req.body;
+
+    if (title !== undefined) meeting.title = title;
+    if (date !== undefined) meeting.date = date;
+    if (venue !== undefined) meeting.venue = venue;
+    if (meetingLink !== undefined) meeting.meetingLink = meetingLink;
+    if (location !== undefined) meeting.location = location;
+    if (agenda !== undefined) meeting.agenda = agenda;
+
+    await meeting.save();
+    await meeting.populate('attendance.member', 'name email');
+
+    res.json({ success: true, message: 'Meeting updated successfully', meeting });
+  } catch (error) {
+    console.error('Edit meeting error:', error);
+    res.status(500).json({ success: false, message: 'Failed to edit meeting', error: error.message });
+  }
+});
 module.exports = router;
