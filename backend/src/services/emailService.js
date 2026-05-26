@@ -1,11 +1,3 @@
-const brevo = require('@getbrevo/brevo');
-
-const defaultClient = brevo.ApiClient.instance;
-const apiKey = defaultClient.authentications['api-key'];
-apiKey.apiKey = process.env.BREVO_API_KEY;
-
-const transactionalEmailsApi = new brevo.TransactionalEmailsApi();
-
 const sendVerificationEmail = async (email, token) => {
   const baseUrl = process.env.CLIENT_URL || process.env.FRONTEND_URL;
 
@@ -23,42 +15,52 @@ const sendVerificationEmail = async (email, token) => {
 
   const verifyUrl = `${baseUrl}/verify-email?token=${token}`;
 
-  const sendSmtpEmail = new brevo.SendSmtpEmail();
-  sendSmtpEmail.subject = 'Verify your APPE account';
-  sendSmtpEmail.htmlContent = `
-    <div style="font-family: Arial, sans-serif; max-width: 500px; margin: auto;">
-      <h2 style="color: #0077b6;">Welcome to APPE</h2>
-      <p>Thanks for signing up. Please verify your email address to activate your account.</p>
-      <a href="${verifyUrl}" 
-         style="display:inline-block; padding: 12px 24px; background-color: #0077b6;
-                color: white; text-decoration: none; border-radius: 6px; margin: 16px 0;">
-        Verify My Email
-      </a>
-      <p style="color: #888; font-size: 13px;">This link expires in <strong>30 minutes</strong>.</p>
-      <p style="color: #888; font-size: 13px;">If you did not create an account, you can safely ignore this email.</p>
-    </div>
-  `;
-  sendSmtpEmail.sender = {
-    name: 'APPE Platform',
-    email: process.env.EMAIL_USER
-  };
-  sendSmtpEmail.to = [
-    {
-      email
-    }
-  ];
+  const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST',
+    headers: {
+      'accept': 'application/json',
+      'api-key': process.env.BREVO_API_KEY,
+      'content-type': 'application/json'
+    },
+    body: JSON.stringify({
+      sender: {
+        name: 'APPE Platform',
+        email: process.env.EMAIL_USER
+      },
+      to: [
+        {
+          email
+        }
+      ],
+      subject: 'Verify your APPE account',
+      htmlContent: `
+        <div style="font-family: Arial, sans-serif; max-width: 500px; margin: auto;">
+          <h2 style="color: #0077b6;">Welcome to APPE</h2>
+          <p>Thanks for signing up. Please verify your email address to activate your account.</p>
+          <a href="${verifyUrl}" 
+             style="display:inline-block; padding: 12px 24px; background-color: #0077b6;
+                    color: white; text-decoration: none; border-radius: 6px; margin: 16px 0;">
+            Verify My Email
+          </a>
+          <p style="color: #888; font-size: 13px;">This link expires in <strong>30 minutes</strong>.</p>
+          <p style="color: #888; font-size: 13px;">If you did not create an account, you can safely ignore this email.</p>
+        </div>
+      `
+    })
+  });
 
-  try {
-    const response = await transactionalEmailsApi.sendTransacEmail(sendSmtpEmail);
-    return response;
-  } catch (error) {
+  const data = await response.json().catch(() => null);
+
+  if (!response.ok) {
     const message =
-      error?.response?.body?.message ||
-      error?.message ||
+      data?.message ||
+      data?.code ||
       'Failed to send verification email';
 
     throw new Error(message);
   }
+
+  return data;
 };
 
 module.exports = { sendVerificationEmail };
