@@ -106,7 +106,7 @@ function Register() {
       })
       setSuccess(true) // ← no navigate, just show success message
     } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed. Please check your details.')
+      setError(err.response?.data?.error || err.response?.data?.message || 'Registration failed. Please check your details.')
     } finally { setLoading(false) }
   }
 
