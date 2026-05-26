@@ -1,12 +1,13 @@
-
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
 const { body } = require('express-validator');
 const User = require('../models/User');
 const validateRequest = require('../middleware/validateRequest');
-const crypto = require('crypto');  // built-in, no install needed
+const crypto = require('crypto');
 const { sendVerificationEmail } = require('../services/emailService');
+const auth = require('../middleware/auth');
+
 
 // Validation rules
 const registerValidation = [
@@ -21,6 +22,7 @@ const loginValidation = [
   body('password').notEmpty().withMessage('Password is required')
 ];
 
+
 // Helper function to generate JWT
 const generateToken = (userId) => {
   return jwt.sign(
@@ -30,6 +32,7 @@ const generateToken = (userId) => {
   );
 };
 
+
 // @route   POST /api/auth/register
 // @desc    Register new user
 // @access  Public
@@ -37,7 +40,6 @@ router.post('/register', registerValidation, validateRequest, async (req, res) =
   try {
     const { name, email, password, role, institution } = req.body;
 
-    // Check if user exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({
@@ -46,10 +48,8 @@ router.post('/register', registerValidation, validateRequest, async (req, res) =
       });
     }
 
-    // Generate verification token
     const verificationToken = crypto.randomBytes(32).toString('hex');
 
-    // Create user — NOT verified yet
     const user = await User.create({
       name,
       email,
@@ -61,28 +61,25 @@ router.post('/register', registerValidation, validateRequest, async (req, res) =
       emailVerificationExpires: new Date(Date.now() + 1000 * 60 * 30)
     });
 
-    try {
-      await sendVerificationEmail(email, verificationToken);
-    } catch (emailError) {
-      await User.deleteOne({ _id: user._id });
-      throw emailError;
-    }
+    sendVerificationEmail(email, verificationToken).catch((emailError) => {
+      console.error(`Verification email failed for ${email}:`, emailError.message);
+    });
 
-    // ✅ No token returned yet — user must verify first
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: 'Registration successful. Please check your email to verify your account.'
     });
 
   } catch (error) {
     console.error('Register error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: 'Registration failed',
       error: error.message
     });
   }
 });
+
 
 // @route   POST /api/auth/login
 // @desc    Login user
@@ -91,7 +88,6 @@ router.post('/login', loginValidation, validateRequest, async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Find user and include password
     const user = await User.findOne({ email }).select('+password');
     if (!user) {
       return res.status(401).json({
@@ -100,7 +96,6 @@ router.post('/login', loginValidation, validateRequest, async (req, res) => {
       });
     }
 
-    // Check password
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       return res.status(401).json({
@@ -108,7 +103,7 @@ router.post('/login', loginValidation, validateRequest, async (req, res) => {
         message: 'Invalid credentials'
       });
     }
-    // Block unverified users
+
     if (!user.isVerified) {
       return res.status(403).json({
         success: false,
@@ -116,10 +111,9 @@ router.post('/login', loginValidation, validateRequest, async (req, res) => {
       });
     }
 
-    // Generate token
     const token = generateToken(user._id);
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Login successful',
       token,
@@ -128,15 +122,14 @@ router.post('/login', loginValidation, validateRequest, async (req, res) => {
 
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: 'Login failed',
       error: error.message
     });
   }
 });
-// Import auth middleware at the top of the file (add this line after other imports)
-const auth = require('../middleware/auth');
+
 
 // @route   GET /api/auth/verify-email
 // @desc    Verify user email via token link
@@ -164,13 +157,11 @@ router.get('/verify-email', async (req, res) => {
       });
     }
 
-    // Activate the account
     user.isVerified = true;
     user.emailVerificationToken = null;
     user.emailVerificationExpires = null;
     await user.save();
 
-    // Redirect to frontend login page
     return res.json({
       success: true,
       message: 'Email verified successfully'
@@ -178,7 +169,7 @@ router.get('/verify-email', async (req, res) => {
 
   } catch (error) {
     console.error('Verify email error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: 'Email verification failed',
       error: error.message
@@ -186,18 +177,19 @@ router.get('/verify-email', async (req, res) => {
   }
 });
 
+
 // @route   GET /api/auth/me
 // @desc    Get current logged-in user
-// @access  Private (requires token)
+// @access  Private
 router.get('/me', auth, async (req, res) => {
   try {
-    res.json({
+    return res.json({
       success: true,
       user: req.user.toPublicProfile()
     });
   } catch (error) {
     console.error('Get user error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: 'Failed to get user data'
     });
