@@ -23,8 +23,8 @@ dist-ssr
 *.sln
 *.sw?
 # Environment variables
-.env
+frontend/.env
 .env.local
 .env.development
-.env.production
+frontend/.env.production
 .env*.local
