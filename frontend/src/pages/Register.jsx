@@ -71,6 +71,7 @@ function Register() {
   })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [success, setSuccess] = useState(false)
 
   const t = {
     page:         isDark ? 'bg-black'                                                 : 'bg-gray-50',
@@ -103,7 +104,7 @@ function Register() {
         password: formData.password,
         institution: formData.institution || undefined,
       })
-      navigate('/dashboard')
+      setSuccess(true) // ← no navigate, just show success message
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed. Please check your details.')
     } finally { setLoading(false) }
@@ -146,93 +147,115 @@ function Register() {
         {/* Card */}
         <div className={`rounded-2xl p-8 ${t.card}`}>
 
-          {error && (
-            <div className={`text-sm px-4 py-3 rounded-xl border mb-5 flex items-center gap-2 ${t.errorBg}`}>
-              <IconAlertCircle /> {error}
+          {/* ── Success state — shown after registration ── */}
+          {success ? (
+            <div className="text-center py-4">
+              {/* Envelope icon */}
+              <div className={`w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 ${isDark ? 'bg-white/8' : 'bg-gray-100'}`}>
+                <IconMail />
+              </div>
+              <h2 className={`text-lg font-semibold mb-2 ${t.heading}`}>Check your email</h2>
+              <p className={`text-sm mb-6 ${t.subtext}`}>
+                We sent a verification link to <span className={`font-medium ${isDark ? 'text-white/70' : 'text-gray-700'}`}>{formData.email}</span>.
+                Click the link in the email to activate your account.
+              </p>
+              <p className={`text-xs ${t.subtext}`}>
+                Already verified?{' '}
+                <Link to="/login" className={`transition ${t.linkAccent}`}>Sign in here</Link>
+              </p>
             </div>
+          ) : (
+            <>
+              {error && (
+                <div className={`text-sm px-4 py-3 rounded-xl border mb-5 flex items-center gap-2 ${t.errorBg}`}>
+                  <IconAlertCircle /> {error}
+                </div>
+              )}
+
+              <form onSubmit={handleSubmit} className="space-y-4">
+
+                {/* Name */}
+                <div>
+                  <label className={`block text-sm font-medium mb-1.5 ${t.label}`}>Full Name *</label>
+                  <InputRow
+                    icon={<IconUser />} type="text" name="name"
+                    value={formData.name} onChange={handleChange}
+                    placeholder="e.g. Diamond Chizota" required
+                    inputWrap={t.inputWrap} iconColor={t.iconColor} inputText={t.inputText}
+                  />
+                </div>
+
+                {/* Email */}
+                <div>
+                  <label className={`block text-sm font-medium mb-1.5 ${t.label}`}>Email Address *</label>
+                  <InputRow
+                    icon={<IconMail />} type="email" name="email"
+                    value={formData.email} onChange={handleChange}
+                    placeholder="student@university.edu" required
+                    inputWrap={t.inputWrap} iconColor={t.iconColor} inputText={t.inputText}
+                  />
+                </div>
+
+                {/* Institution */}
+                <div>
+                  <label className={`block text-sm font-medium mb-1.5 ${t.label}`}>
+                    Institution <span className={`font-normal ${t.sectionLabel}`}>(optional)</span>
+                  </label>
+                  <InputRow
+                    icon={<IconBuilding />} type="text" name="institution"
+                    value={formData.institution} onChange={handleChange}
+                    placeholder="University of Ghana"
+                    inputWrap={t.inputWrap} iconColor={t.iconColor} inputText={t.inputText}
+                  />
+                </div>
+
+                {/* Password divider */}
+                <div className={`border-t pt-4 ${t.divider}`}>
+                  <p className={`text-xs font-semibold uppercase tracking-wide mb-3 ${t.sectionLabel}`}>Password</p>
+                </div>
+
+                {/* Password */}
+                <div>
+                  <label className={`block text-sm font-medium mb-1.5 ${t.label}`}>Password *</label>
+                  <InputRow
+                    icon={<IconLock />} type="password" name="password"
+                    value={formData.password} onChange={handleChange}
+                    placeholder="Min. 6 characters" required
+                    inputWrap={t.inputWrap} iconColor={t.iconColor} inputText={t.inputText}
+                  />
+                </div>
+
+                {/* Confirm Password */}
+                <div>
+                  <label className={`block text-sm font-medium mb-1.5 ${t.label}`}>Confirm Password *</label>
+                  <InputRow
+                    icon={<IconLock />} type="password" name="confirmPassword"
+                    value={formData.confirmPassword} onChange={handleChange}
+                    placeholder="Re-enter password" required
+                    inputWrap={t.inputWrap} iconColor={t.iconColor} inputText={t.inputText}
+                  />
+                </div>
+
+                <div className="pt-2">
+                  <button type="submit" disabled={loading}
+                    className={`w-full py-2.5 rounded-xl text-sm font-medium transition ${t.submitBtn}`}>
+                    {loading ? 'Creating account...' : 'Create Account'}
+                  </button>
+                </div>
+
+              </form>
+
+              <div className={`mt-6 pt-5 text-center border-t ${t.divider}`}>
+                <p className={`text-sm ${t.subtext}`}>
+                  Already have an account?{' '}
+                  <Link to="/login" className={`transition ${t.linkAccent}`}>
+                    Sign in here
+                  </Link>
+                </p>
+              </div>
+            </>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-
-            {/* Name */}
-            <div>
-              <label className={`block text-sm font-medium mb-1.5 ${t.label}`}>Full Name *</label>
-              <InputRow
-                icon={<IconUser />} type="text" name="name"
-                value={formData.name} onChange={handleChange}
-                placeholder="e.g. Diamond Chizota" required
-                inputWrap={t.inputWrap} iconColor={t.iconColor} inputText={t.inputText}
-              />
-            </div>
-
-            {/* Email */}
-            <div>
-              <label className={`block text-sm font-medium mb-1.5 ${t.label}`}>Email Address *</label>
-              <InputRow
-                icon={<IconMail />} type="email" name="email"
-                value={formData.email} onChange={handleChange}
-                placeholder="student@university.edu" required
-                inputWrap={t.inputWrap} iconColor={t.iconColor} inputText={t.inputText}
-              />
-            </div>
-
-            {/* Institution */}
-            <div>
-              <label className={`block text-sm font-medium mb-1.5 ${t.label}`}>
-                Institution <span className={`font-normal ${t.sectionLabel}`}>(optional)</span>
-              </label>
-              <InputRow
-                icon={<IconBuilding />} type="text" name="institution"
-                value={formData.institution} onChange={handleChange}
-                placeholder="University of Ghana"
-                inputWrap={t.inputWrap} iconColor={t.iconColor} inputText={t.inputText}
-              />
-            </div>
-
-            {/* Password divider */}
-            <div className={`border-t pt-4 ${t.divider}`}>
-              <p className={`text-xs font-semibold uppercase tracking-wide mb-3 ${t.sectionLabel}`}>Password</p>
-            </div>
-
-            {/* Password */}
-            <div>
-              <label className={`block text-sm font-medium mb-1.5 ${t.label}`}>Password *</label>
-              <InputRow
-                icon={<IconLock />} type="password" name="password"
-                value={formData.password} onChange={handleChange}
-                placeholder="Min. 6 characters" required
-                inputWrap={t.inputWrap} iconColor={t.iconColor} inputText={t.inputText}
-              />
-            </div>
-
-            {/* Confirm Password */}
-            <div>
-              <label className={`block text-sm font-medium mb-1.5 ${t.label}`}>Confirm Password *</label>
-              <InputRow
-                icon={<IconLock />} type="password" name="confirmPassword"
-                value={formData.confirmPassword} onChange={handleChange}
-                placeholder="Re-enter password" required
-                inputWrap={t.inputWrap} iconColor={t.iconColor} inputText={t.inputText}
-              />
-            </div>
-
-            <div className="pt-2">
-              <button type="submit" disabled={loading}
-                className={`w-full py-2.5 rounded-xl text-sm font-medium transition ${t.submitBtn}`}>
-                {loading ? 'Creating account...' : 'Create Account'}
-              </button>
-            </div>
-
-          </form>
-
-          <div className={`mt-6 pt-5 text-center border-t ${t.divider}`}>
-            <p className={`text-sm ${t.subtext}`}>
-              Already have an account?{' '}
-              <Link to="/login" className={`transition ${t.linkAccent}`}>
-                Sign in here
-              </Link>
-            </p>
-          </div>
         </div>
 
       </div>

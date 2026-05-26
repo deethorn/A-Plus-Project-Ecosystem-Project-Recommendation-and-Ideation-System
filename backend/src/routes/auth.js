@@ -5,6 +5,8 @@ const jwt = require('jsonwebtoken');
 const { body } = require('express-validator');
 const User = require('../models/User');
 const validateRequest = require('../middleware/validateRequest');
+const crypto = require('crypto');  // built-in, no install needed
+const { sendVerificationEmail } = require('../services/emailService');
 
 // Validation rules
 const registerValidation = [
@@ -44,23 +46,32 @@ router.post('/register', registerValidation, validateRequest, async (req, res) =
       });
     }
 
-    // Create user
+    // Generate verification token
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+
+    // Create user — NOT verified yet
     const user = await User.create({
       name,
       email,
       password,
       role: role || 'student',
-      institution
+      institution,
+      isVerified: false,
+      emailVerificationToken: verificationToken,
+      emailVerificationExpires: new Date(Date.now() + 1000 * 60 * 30)
     });
 
-    // Generate token
-    const token = generateToken(user._id);
+    try {
+      await sendVerificationEmail(email, verificationToken);
+    } catch (emailError) {
+      await User.deleteOne({ _id: user._id });
+      throw emailError;
+    }
 
+    // ✅ No token returned yet — user must verify first
     res.status(201).json({
       success: true,
-      message: 'Registration successful',
-      token,
-      user: user.toPublicProfile()
+      message: 'Registration successful. Please check your email to verify your account.'
     });
 
   } catch (error) {
@@ -97,6 +108,13 @@ router.post('/login', loginValidation, validateRequest, async (req, res) => {
         message: 'Invalid credentials'
       });
     }
+    // Block unverified users
+    if (!user.isVerified) {
+      return res.status(403).json({
+        success: false,
+        message: 'Please verify your email before logging in. Check your inbox for the verification link.'
+      });
+    }
 
     // Generate token
     const token = generateToken(user._id);
@@ -119,6 +137,54 @@ router.post('/login', loginValidation, validateRequest, async (req, res) => {
 });
 // Import auth middleware at the top of the file (add this line after other imports)
 const auth = require('../middleware/auth');
+
+// @route   GET /api/auth/verify-email
+// @desc    Verify user email via token link
+// @access  Public
+router.get('/verify-email', async (req, res) => {
+  try {
+    const { token } = req.query;
+
+    if (!token) {
+      return res.status(400).json({
+        success: false,
+        message: 'Verification token is missing'
+      });
+    }
+
+    const user = await User.findOne({
+      emailVerificationToken: token,
+      emailVerificationExpires: { $gt: new Date() }
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: 'Verification link is invalid or has expired. Please register again.'
+      });
+    }
+
+    // Activate the account
+    user.isVerified = true;
+    user.emailVerificationToken = null;
+    user.emailVerificationExpires = null;
+    await user.save();
+
+    // Redirect to frontend login page
+    return res.json({
+      success: true,
+      message: 'Email verified successfully'
+    });
+
+  } catch (error) {
+    console.error('Verify email error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Email verification failed',
+      error: error.message
+    });
+  }
+});
 
 // @route   GET /api/auth/me
 // @desc    Get current logged-in user

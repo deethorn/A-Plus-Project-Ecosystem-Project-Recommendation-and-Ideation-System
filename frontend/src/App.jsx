@@ -14,6 +14,7 @@ import Notifications from './pages/Notifications'
 import Profile from './pages/Profile'
 import Recommendations from './pages/Recommendations'
 import TaskManager from './pages/TaskManager'
+import VerifyEmail from './pages/VerifyEmail'
 
 export default function App() {
   return (
@@ -24,6 +25,7 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
 
           <Route element={<ProtectedRoute />}>
             <Route element={<Layout />}>

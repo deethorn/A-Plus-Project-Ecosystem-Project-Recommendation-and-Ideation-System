@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useTheme } from '../context/ThemeContext'
 import appe from '../assets/appe.svg'
@@ -57,6 +57,15 @@ function Login() {
     backBtn:    isDark ? 'text-white/40 hover:text-white/80 hover:bg-white/8'       : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/60',
   }
 
+  const location = useLocation()
+
+    useEffect(() => {
+      const params = new URLSearchParams(location.search)
+      if (params.get('verified') === 'true') {
+        setVerifiedMsg(true)
+      }
+  }, [location])
+
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value })
 
   const handleSubmit = async (e) => {
@@ -68,6 +77,7 @@ function Login() {
       setError(err.response?.data?.message || 'Login failed. Please try again.')
     } finally { setLoading(false) }
   }
+  const [verifiedMsg, setVerifiedMsg] = useState(false)
 
   return (
     <div className={`min-h-screen flex items-center justify-center px-4 py-12 transition-colors duration-300 relative overflow-hidden ${t.page}`}>
@@ -105,6 +115,21 @@ function Login() {
 
         {/* Card */}
         <div className={`rounded-2xl p-8 ${t.card}`}>
+
+          {verifiedMsg && (
+            <div className={`text-sm px-4 py-3 rounded-xl border mb-5 flex items-center gap-2 ${
+              isDark
+                ? 'bg-green-500/10 border-green-500/30 text-green-400'
+                : 'bg-green-50 border-green-200 text-green-600'
+            }`}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+                fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                <polyline points="22 4 12 13.01 9 10.01"/>
+              </svg>
+              Email verified! You can now sign in.
+            </div>
+          )}
 
           {error && (
             <div className={`text-sm px-4 py-3 rounded-xl border mb-5 flex items-center gap-2 ${t.errorBg}`}>

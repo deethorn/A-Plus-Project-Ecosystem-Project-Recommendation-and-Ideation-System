@@ -12,10 +12,26 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is logged in on mount
-    const currentUser = authService.getCurrentUser();
-    setUser(currentUser);
-    setLoading(false);
+  const initAuth = async () => {
+    try {
+      const token = authService.getToken();
+
+      if (!token) {
+        setUser(null);
+        return;
+      }
+
+      const data = await authService.getMe();
+      setUser(data.user || null);
+    } catch (error) {
+      authService.logout();
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+   initAuth();
   }, []);
 
   const login = async (credentials) => {
@@ -26,7 +42,6 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (userData) => {
     const data = await authService.register(userData);
-    setUser(data.user);
     return data;
   };
 
