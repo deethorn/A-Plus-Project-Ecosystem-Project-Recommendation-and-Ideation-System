@@ -1462,7 +1462,7 @@ const handleSaveMeeting = async () => {
                 </div>
               )}
 
-              {/* ── Common Fields (shown after role is picked) ── */}
+              {/* ── Common Fields (shown after role is picked) */}
               {joinRole && (
                 <>
                   <div>
