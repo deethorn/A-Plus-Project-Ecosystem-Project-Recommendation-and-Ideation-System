@@ -374,7 +374,7 @@ router.delete('/:id', auth, async (req, res) => {
   }
 });
 
-// Internal helper — notify removed member
+// Internal helper  notify removed member
 async function notifyMemberRemoved(memberId, projectTitle, projectId) {
   try {
     const notificationService = require('../services/notificationService');
