@@ -23,11 +23,11 @@ const projectSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Category is required'],
     enum: [
-      'Accounting', 'Banking & Finance', 'Entrepreneurship', 'Human Resource Management', 'Marketing', 'Advertising & Public Relations', 
-  'Mass Communication & Journalism', 'Artificial Intelligence', 'Computer Science', 'Information Technology', 'Biomedical Engineering', 
-  'Computer Engineering', 'Electrical & Electronics Engineering', 'Electronics & Computer Engineering', 'Unmanned Aerial Systems (UAS) Engineering', 
-  'Industrial & Systems Engineering', 'Mechanical Engineering', 'Nuclear Engineering', 'Robotics Engineering', 'Other',
-  ]
+      'Accounting', 'Banking & Finance', 'Entrepreneurship', 'Human Resource Management', 'Marketing', 'Advertising & Public Relations',
+      'Mass Communication & Journalism', 'Artificial Intelligence', 'Computer Science', 'Information Technology', 'Biomedical Engineering',
+      'Computer Engineering', 'Electrical & Electronics Engineering', 'Electronics & Computer Engineering', 'Unmanned Aerial Systems (UAS) Engineering',
+      'Industrial & Systems Engineering', 'Mechanical Engineering', 'Nuclear Engineering', 'Robotics Engineering', 'Other',
+    ]
   },
   tags: [{
     type: String,
@@ -72,6 +72,13 @@ const projectSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+
+  // ── Co-owners: users with the same coordination rights as owner ──
+  coOwners: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
+
   teamMembers: [{
     user: {
       type: mongoose.Schema.Types.ObjectId,
@@ -79,7 +86,7 @@ const projectSchema = new mongoose.Schema({
     },
     role: {
       type: String,
-      enum: ['owner', 'hod', 'supervisor', 'student', 'member'],
+      enum: ['owner', 'co-owner', 'hod', 'supervisor', 'student', 'member'],
       default: 'member'
     },
     joinedAt: {
@@ -113,15 +120,15 @@ const projectSchema = new mongoose.Schema({
       ref: 'Project'
     },
     similarityScore: {
-        type: Number,
-        min: 0,
-        max: 100
-      }
+      type: Number,
+      min: 0,
+      max: 100
+    }
   }],
   viewedBy: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
- }],
+  }],
   views: {
     type: Number,
     default: 0
@@ -154,6 +161,13 @@ projectSchema.methods.isTeamFull = function () {
   return this.currentTeamSize >= this.teamSize;
 };
 
+// Helper: check if a userId is owner or co-owner
+projectSchema.methods.isOwnerOrCoOwner = function (userId) {
+  const id = userId.toString();
+  if (this.owner.toString() === id) return true;
+  return this.coOwners.some(c => c.toString() === id);
+};
+
 // Method to get public project info
 projectSchema.methods.toPublicProject = function () {
   const project = this.toObject();
@@ -178,6 +192,7 @@ projectSchema.index({ title: 'text', description: 'text', tags: 'text' });
 // Index for filtering
 projectSchema.index({ category: 1, status: 1, visibility: 1 });
 projectSchema.index({ owner: 1 });
+projectSchema.index({ coOwners: 1 });
 projectSchema.index({ createdAt: -1 });
 projectSchema.index({ startDate: 1, endDate: 1 });
 

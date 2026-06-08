@@ -338,8 +338,15 @@ export default function ProjectDetail() {
   const isOwner = !!(userId && ownerId && userId === ownerId)
   const isTeamMember = project?.teamMembers?.some(
     m => m.user?._id?.toString() === user?.id?.toString() ||
-         m.user?._id?.toString() === user?._id?.toString()
+        m.user?._id?.toString() === user?._id?.toString()
   )
+  const isCoOwner = !isOwner && project?.teamMembers?.some(
+    m =>
+      (m.user?._id?.toString() === user?.id?.toString() ||
+      m.user?._id?.toString() === user?._id?.toString()) &&
+      m.role === 'co-owner'
+  )
+  const canManage = isOwner || isCoOwner  // shorthand used throughout
   const isCompleted = project?.status === 'completed'
   const isTeamFull  = project?.currentTeamSize >= project?.teamSize
 
@@ -425,24 +432,33 @@ export default function ProjectDetail() {
         if (!cancelled) setMeetings([])
       }
 
-      if (isOwnerViewer) {
+     const isCoOwnerViewer = !isOwnerViewer && !!(
+  uid &&
+  data.project.teamMembers?.some(
+    m =>
+      (m.user?._id?.toString?.() || m.user?.id?.toString?.()) === uid &&
+      m.role === 'co-owner'
+  )
+)
+
+    if (isOwnerViewer || isCoOwnerViewer) {
+      const reqData = await getProjectRequests(id)
+      if (!cancelled) setRequests(reqData.requests || [])
+    } else if (uid) {
+      try {
         const reqData = await getProjectRequests(id)
-        if (!cancelled) setRequests(reqData.requests || [])
-      } else if (uid) {
-        try {
-          const reqData = await getProjectRequests(id)
-          if (!cancelled && reqData.requests) {
-            const mine = reqData.requests.find(
-              r =>
-                (r.requester?._id?.toString?.() || r.requester?.id?.toString?.()) === uid &&
-                r.status === 'pending'
-            )
-            if (mine) setMyPendingRequest(mine)
-          }
-        } catch (_) {
-          // ignore 403 for non-owners
+        if (!cancelled && reqData.requests) {
+          const mine = reqData.requests.find(
+            r =>
+              (r.requester?._id?.toString?.() || r.requester?.id?.toString?.()) === uid &&
+              r.status === 'pending'
+          )
+          if (mine) setMyPendingRequest(mine)
         }
+      } catch (_) {
+        // ignore 403 for non-owners
       }
+    }
     } catch (err) {
       if (!cancelled) setError('Failed to load project.')
     } finally {
@@ -656,6 +672,15 @@ const handleSaveMeeting = async () => {
         }
       </>
     )
+    if (isCoOwner) return (
+      <>
+        <span className={`text-xs px-3 py-2 rounded-lg font-medium border ${t.ownerBadge}`}>Co-Owner</span>
+        {!isCompleted
+          ? <button onClick={() => navigate(`/projects/${id}/tasks`)} className={`text-xs px-3 py-2 rounded-lg font-medium border flex items-center gap-1.5 transition ${t.tasksBtn}`}><IconClipboard /> Manage Tasks</button>
+          : <span className={`text-xs px-3 py-2 rounded-lg font-medium border flex items-center gap-1.5 ${t.lockedBadge}`}><IconLock /> Tasks Locked</span>
+        }
+      </>
+    )
     if (isTeamMember) return (
       <>
         <span className={`text-xs px-3 py-2 rounded-lg font-medium border ${t.memberBadge}`}>Team Member</span>
@@ -855,7 +880,7 @@ const handleSaveMeeting = async () => {
                       <span className={`text-xs px-3 py-1 rounded-full font-medium ${member.role === 'owner' ? t.memberOwnerBadge : t.memberRoleBadge}`}>
                         {hiddenIdentity ? 'member' : member.role}
                       </span>
-                      {isOwner && !isOwnerRow && !isCompleted && (
+                      {canManage && !isOwnerRow && !isCompleted && (
                         <button
                           onClick={() => handleRemoveMember(memberId, member.user?.name)}
                           disabled={removingMemberId === memberId}
@@ -889,7 +914,7 @@ const handleSaveMeeting = async () => {
                 <IconCalendar />
                 <h2 className={`text-sm font-semibold ${t.sectionTitle}`}>Meeting Plan</h2>
               </div>
-              {isOwner && !isCompleted && (
+              {canManage && !isCompleted && (
                 <button
                   onClick={() => {
                     setIsEditingMeeting(false)
@@ -1002,7 +1027,7 @@ const handleSaveMeeting = async () => {
                                   View Details
                                 </button>
 
-                                {isOwner && !isCompleted && (
+                                {canManage && !isCompleted && (
                                   <button
                                     onClick={() => {
                                       openEditMeetingModal(meeting)
@@ -1017,7 +1042,7 @@ const handleSaveMeeting = async () => {
                                   </button>
                                 )}
 
-                                {isOwner && isPast && (
+                                {canManage && isPast && (
                                   <button
                                     onClick={() => {
                                       openAttendanceModal(meeting)
@@ -1030,7 +1055,7 @@ const handleSaveMeeting = async () => {
                                   </button>
                                 )}
 
-                                {isOwner && (
+                                {canManage && (
                                   <button
                                     onClick={() => {
                                       handleDeleteMeeting(meeting._id)
@@ -1261,7 +1286,7 @@ const handleSaveMeeting = async () => {
         )}
 
         {/* ── Collaboration Requests (Owner Only) ── */}
-        {isOwner && (
+        {canManage && (
           <div className={`rounded-xl border p-6 space-y-4 ${t.card}`}>
             <div className={`rounded-lg px-4 py-3 flex items-center justify-between ${t.sectionHdr}`}>
               <div className="flex items-center gap-2">
@@ -1324,11 +1349,12 @@ const handleSaveMeeting = async () => {
                 <label className={`block text-xs font-medium mb-2 ${t.modalLabel}`}>
                   I am joining as <span className="text-red-400">*</span>
                 </label>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   {[
                     { value: 'student',    label: 'Student' },
                     { value: 'supervisor', label: 'Supervisor' },
                     { value: 'hod',        label: 'HOD' },
+                    { value: 'co-owner',   label: 'Co-Owner' },
                   ].map(({ value, label }) => (
                     <button
                       key={value}
@@ -1422,6 +1448,17 @@ const handleSaveMeeting = async () => {
                     <option value="">Select department...</option>
                     {DEPARTMENT_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                   </select>
+                </div>
+              )}
+
+              {/* ── Co-Owner Fields ── */}
+              {joinRole === 'co-owner' && (
+                <div className={`text-xs px-3 py-2.5 rounded-xl border ${
+                  isDark
+                    ? 'border-white/10 text-white/40 bg-white/3'
+                    : 'border-gray-100 text-gray-400 bg-gray-50'
+                }`}>
+                  Requesting co-ownership gives you owner-level access to manage this project once the owner accepts your request.
                 </div>
               )}
 

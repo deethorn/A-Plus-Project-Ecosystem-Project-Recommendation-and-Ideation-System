@@ -107,8 +107,14 @@ export default function TaskManager() {
   const [editLoading, setEditLoading] = useState(false)
   const [editError, setEditError] = useState('')
 
-  const isOwner = project?.owner?._id?.toString() === user?.id?.toString() ||
-    project?.owner?._id?.toString() === user?._id?.toString()
+  const userId = user?.id?.toString() || user?._id?.toString()
+
+  const isOwner = !!(userId && (
+    project?.owner?._id?.toString() === userId ||
+    project?.coOwners?.some(c =>
+      (c?._id?.toString() || c?.toString()) === userId
+    )
+  ))
   const isCompleted = project?.status === 'completed'
   const todoTasks      = tasks.filter(t => t.status !== 'completed')
   const completedTasks = tasks.filter(t => t.status === 'completed')

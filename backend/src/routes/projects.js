@@ -44,6 +44,7 @@ router.post('/', auth, createProjectValidation, validateRequest, async (req, res
       endDate: endDate || null,
       isAnonymous: isAnonymous || false,
       owner: req.user._id,
+      coOwners: [],
       teamMembers: [{ user: req.user._id, role: 'owner', joinedAt: Date.now() }],
       currentTeamSize: 1,
       duplicateScore,
@@ -69,7 +70,12 @@ router.post('/', auth, createProjectValidation, validateRequest, async (req, res
 // @route   GET /api/projects/user/my-projects  ← MUST stay before /:id
 router.get('/user/my-projects', auth, async (req, res) => {
   try {
-    const projects = await Project.find({ owner: req.user._id })
+    const projects = await Project.find({
+      $or: [
+        { owner: req.user._id },
+        { coOwners: req.user._id }
+      ]
+    })
       .populate('teamMembers.user', 'name email')
       .sort({ createdAt: -1 });
 
@@ -95,6 +101,7 @@ router.get('/', async (req, res) => {
 
     const projects = await Project.find(query)
       .populate('owner', 'name email institution profilePicture')
+      .populate('coOwners', 'name email institution profilePicture')
       .sort({ [sortBy]: sortOrder })
       .skip(skip)
       .limit(parseInt(limit))
@@ -128,42 +135,41 @@ router.get('/:id', async (req, res) => {
   try {
     const project = await Project.findById(req.params.id)
       .populate('owner', 'name email institution profilePicture bio')
-      .populate('teamMembers.user', 'name email institution profilePicture')
+      .populate('coOwners', 'name email institution profilePicture')
+      .populate('teamMembers.user', 'name email institution profilePicture');
 
     if (!project) {
-      return res.status(404).json({ success: false, message: 'Project not found' })
+      return res.status(404).json({ success: false, message: 'Project not found' });
     }
 
-    let requestingUserId = null
-    const authHeader = req.headers.authorization
+    let requestingUserId = null;
+    const authHeader = req.headers.authorization;
     if (authHeader?.startsWith('Bearer ')) {
       try {
-        const jwt = require('jsonwebtoken')
-        const decoded = jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET)
-        requestingUserId = decoded.id?.toString() || decoded._id?.toString()
+        const jwt = require('jsonwebtoken');
+        const decoded = jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET);
+        requestingUserId = decoded.id?.toString() || decoded._id?.toString();
       } catch (_) {}
     }
 
-    const isOwner = !!(requestingUserId &&
-      project.owner._id.toString() === requestingUserId)
+    const isOwnerOrCoOwner = !!(requestingUserId && project.isOwnerOrCoOwner(requestingUserId));
 
-    if (requestingUserId && !isOwner) {
+    if (requestingUserId && !isOwnerOrCoOwner) {
       const alreadyViewed = project.viewedBy?.some(
         userId => userId.toString() === requestingUserId
-      )
-
+      );
       if (!alreadyViewed) {
-        project.views = (project.views || 0) + 1
-        project.viewedBy = [...(project.viewedBy || []), requestingUserId]
-        await project.save()
+        project.views = (project.views || 0) + 1;
+        project.viewedBy = [...(project.viewedBy || []), requestingUserId];
+        await project.save();
       }
-  }
+    }
 
     const isAcceptedMember = !!(requestingUserId &&
-      project.teamMembers.some(m => m.user?._id?.toString() === requestingUserId))
+      project.teamMembers.some(m => m.user?._id?.toString() === requestingUserId));
 
-    const isCommunityMember = isOwner || isAcceptedMember
-    const projectData = project.toObject()
+    const isCommunityMember = isOwnerOrCoOwner || isAcceptedMember;
+    const projectData = project.toObject();
 
     if (project.isAnonymous && !isCommunityMember) {
       projectData.owner = {
@@ -172,21 +178,22 @@ router.get('/:id', async (req, res) => {
         institution: null,
         email: null,
         profilePicture: null
-      }
+      };
       projectData.teamMembers = projectData.teamMembers.map((m) => ({
         ...m,
         user: { _id: m.user?._id, name: 'Anonymous Member', institution: null, profilePicture: null }
-      }))
+      }));
     }
 
-    res.json({ success: true, project: projectData })
+    res.json({ success: true, project: projectData });
   } catch (error) {
-    console.error('Get project error:', error)
-    res.status(500).json({ success: false, message: 'Failed to fetch project', error: error.message })
+    console.error('Get project error:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch project', error: error.message });
   }
 });
 
 // @route   PATCH /api/projects/:id/status
+// @access  Owner or Co-owner
 router.patch('/:id/status', auth, async (req, res) => {
   try {
     const { status } = req.body;
@@ -204,7 +211,7 @@ router.patch('/:id/status', auth, async (req, res) => {
       return res.status(404).json({ success: false, message: 'Project not found' });
     }
 
-    if (project.owner.toString() !== req.user._id.toString()) {
+    if (!project.isOwnerOrCoOwner(req.user._id)) {
       return res.status(403).json({ success: false, message: 'Not authorized to update this project' });
     }
 
@@ -219,6 +226,7 @@ router.patch('/:id/status', auth, async (req, res) => {
 });
 
 // @route   DELETE /api/projects/:id/members/:memberId
+// @access  Owner or Co-owner
 router.delete('/:id/members/:memberId', auth, async (req, res) => {
   try {
     const project = await Project.findById(req.params.id);
@@ -227,11 +235,18 @@ router.delete('/:id/members/:memberId', auth, async (req, res) => {
       return res.status(404).json({ success: false, message: 'Project not found' });
     }
 
-    if (project.owner.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ success: false, message: 'Only the project owner can remove members' });
+    if (!project.isOwnerOrCoOwner(req.user._id)) {
+      return res.status(403).json({ success: false, message: 'Only the project owner or co-owner can remove members' });
     }
 
-    if (req.params.memberId === req.user._id.toString()) {
+    // Co-owners cannot remove other co-owners — only the owner can
+    const targetIsCoOwner = project.coOwners.some(c => c.toString() === req.params.memberId);
+    const requesterIsCoOwner = project.coOwners.some(c => c.toString() === req.user._id.toString());
+    if (targetIsCoOwner && requesterIsCoOwner) {
+      return res.status(403).json({ success: false, message: 'Co-owners cannot remove other co-owners. Only the project owner can.' });
+    }
+
+    if (req.params.memberId === project.owner.toString()) {
       return res.status(400).json({ success: false, message: 'Project owner cannot be removed' });
     }
 
@@ -244,6 +259,9 @@ router.delete('/:id/members/:memberId', auth, async (req, res) => {
 
     project.teamMembers = project.teamMembers.filter(
       m => m.user.toString() !== req.params.memberId
+    );
+    project.coOwners = project.coOwners.filter(
+      c => c.toString() !== req.params.memberId
     );
     project.currentTeamSize = Math.max(1, project.currentTeamSize - 1);
     await project.save();
@@ -283,6 +301,9 @@ router.delete('/:id/leave', auth, async (req, res) => {
     project.teamMembers = project.teamMembers.filter(
       m => m.user.toString() !== req.user._id.toString()
     );
+    project.coOwners = project.coOwners.filter(
+      c => c.toString() !== req.user._id.toString()
+    );
     project.currentTeamSize = Math.max(1, project.currentTeamSize - 1);
     await project.save();
 
@@ -290,6 +311,43 @@ router.delete('/:id/leave', auth, async (req, res) => {
   } catch (error) {
     console.error('Leave project error:', error);
     res.status(500).json({ success: false, message: 'Failed to leave project', error: error.message });
+  }
+});
+
+// @route   DELETE /api/projects/:id/co-owner/:userId
+// @desc    Owner removes a co-owner
+// @access  Owner only
+router.delete('/:id/co-owner/:userId', auth, async (req, res) => {
+  try {
+    const project = await Project.findById(req.params.id);
+
+    if (!project) {
+      return res.status(404).json({ success: false, message: 'Project not found' });
+    }
+
+    if (project.owner.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, message: 'Only the project owner can remove a co-owner' });
+    }
+
+    const isCoOwner = project.coOwners.some(c => c.toString() === req.params.userId);
+    if (!isCoOwner) {
+      return res.status(404).json({ success: false, message: 'User is not a co-owner of this project' });
+    }
+
+    project.coOwners = project.coOwners.filter(c => c.toString() !== req.params.userId);
+
+    // Revert their teamMembers role from co-owner back to member
+    const memberEntry = project.teamMembers.find(m => m.user.toString() === req.params.userId);
+    if (memberEntry) {
+      memberEntry.role = 'member';
+    }
+
+    await project.save();
+
+    res.json({ success: true, message: 'Co-owner removed successfully' });
+  } catch (error) {
+    console.error('Remove co-owner error:', error);
+    res.status(500).json({ success: false, message: 'Failed to remove co-owner', error: error.message });
   }
 });
 
